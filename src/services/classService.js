@@ -7,10 +7,10 @@ export async function createClass(data) {
 
 export async function getMyClasses() {
   const response = await api.get('/api/classes/my-classes');
-  return response.data.data;
+  return response.data.data.classes || [];
 }
 
 export async function getClassById(id) {
   const response = await api.get(`/api/classes/${id}`);
-  return response.data.data;
+  return response.data.data.class;
 }

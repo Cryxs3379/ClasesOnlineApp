@@ -22,6 +22,7 @@ export default function TeachersList() {
       setError('');
       try {
         const data = await getTeachers();
+        console.log('TEACHERS RESPONSE:', data);
         setTeachers(Array.isArray(data) ? data : []);
       } catch (err) {
         const status = err.response?.status;
