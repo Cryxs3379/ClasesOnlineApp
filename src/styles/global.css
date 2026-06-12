@@ -672,6 +672,346 @@ img {
   max-width: 560px;
 }
 
+/* ===== BridgeClass Pro ===== */
+.app-shell {
+  min-height: 100vh;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.stat-card span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.stat-card strong {
+  font-size: 2rem;
+  color: var(--color-text);
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 1.25rem;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+.quick-action:hover {
+  color: var(--color-primary-hover);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.data-table th {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-card {
+  overflow-x: auto;
+}
+
+.class-card__actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.class-card h3 {
+  margin-bottom: 0.75rem;
+}
+
+.next-class h3 {
+  margin-bottom: 0.35rem;
+}
+
+.next-class p {
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.next-class .btn {
+  margin-top: 0.75rem;
+}
+
+.hero-saas {
+  text-align: center;
+  padding: 3rem 0 2.5rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.feature-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.feature-card p {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.cta-section {
+  text-align: center;
+  padding: 2rem;
+  margin-bottom: 1rem;
+}
+
+.cta-section h2 {
+  margin-bottom: 0.5rem;
+}
+
+.cta-section p {
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.messages-shell__sidebar,
+.messages-shell__panel {
+  min-height: 420px;
+}
+
+.messages-shell__conversation {
+  padding: 0.75rem 0;
+}
+
+.messages-shell__empty {
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.messages-shell__composer {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.messages-shell__composer input {
+  flex: 1;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.classroom-pro {
+  display: grid;
+  gap: 1rem;
+}
+
+.classroom__meta {
+  margin-bottom: 0.5rem;
+}
+
+.classroom__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.classroom-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.classroom-video-shell {
+  position: relative;
+  min-height: 680px;
+  background: #020617;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.bridgecall-room {
+  position: relative;
+  width: 100%;
+  height: 680px;
+  background: #020617;
+}
+
+.bridgecall-room__container {
+  width: 100%;
+  height: 100%;
+}
+
+.bridgecall-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.82);
+  color: white;
+  font-weight: 700;
+}
+
+.bridgecall-overlay--error {
+  color: #fecaca;
+}
+
+.classroom-tools-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.whiteboard-placeholder {
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+}
+
+.classroom-video-shell .whiteboard-coming-soon {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 4;
+}
+
+.whiteboard-placeholder__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.whiteboard-placeholder__toolbar button {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.whiteboard-placeholder p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.mini-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.mini-calendar__day {
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mini-calendar__day.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.mini-calendar__day.has-class {
+  border-color: var(--color-primary);
+}
+
+.mini-calendar__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout,
+  .classroom-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .classroom-video-shell,
+  .bridgecall-room {
+    min-height: 520px;
+    height: 520px;
+  }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 640px) {
   .navbar__inner {

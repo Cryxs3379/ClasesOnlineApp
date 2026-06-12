@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
@@ -6,11 +6,24 @@ import MainLayout from './layouts/MainLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import TeacherProfile from './pages/TeacherProfile';
-import TeachersList from './pages/TeachersList';
-import TeacherDetail from './pages/TeacherDetail';
-import MyClasses from './pages/MyClasses';
+import DashboardRedirect from './pages/DashboardRedirect';
+
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherStudents from './pages/teacher/TeacherStudents';
+import TeacherCreateStudent from './pages/teacher/TeacherCreateStudent';
+import TeacherStudentDetail from './pages/teacher/TeacherStudentDetail';
+import TeacherClasses from './pages/teacher/TeacherClasses';
+import TeacherCreateClass from './pages/teacher/TeacherCreateClass';
+import TeacherCalendar from './pages/teacher/TeacherCalendar';
+import TeacherMessages from './pages/teacher/TeacherMessages';
+import TeacherDocuments from './pages/teacher/TeacherDocuments';
+
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentClasses from './pages/student/StudentClasses';
+import StudentCalendar from './pages/student/StudentCalendar';
+import StudentMessages from './pages/student/StudentMessages';
+import StudentDocuments from './pages/student/StudentDocuments';
+
 import Classroom from './pages/Classroom';
 
 export default function App() {
@@ -22,41 +35,148 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
-            <Route path="teachers" element={<TeachersList />} />
-            <Route path="teachers/:id" element={<TeacherDetail />} />
 
             <Route
               path="dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <DashboardRedirect />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="teacher/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherDashboard />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="teacher-profile"
+              path="teacher/students"
               element={
-                <ProtectedRoute allowedRoles={['teacher']}>
-                  <TeacherProfile />
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherStudents />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="my-classes"
+              path="teacher/students/new"
               element={
-                <ProtectedRoute>
-                  <MyClasses />
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherCreateStudent />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="classroom/:id"
+              path="teacher/students/:id"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherStudentDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/classes"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherClasses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/classes/new"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherCreateClass />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/calendar"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherCalendar />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/messages"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherMessages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/documents"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherDocuments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="teacher/classroom/:id"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
                   <Classroom />
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="student/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/classes"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentClasses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/calendar"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentCalendar />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/messages"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentMessages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/documents"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentDocuments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/classroom/:id"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <Classroom />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="my-classes" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

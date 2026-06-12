@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { saveTeacherProfile } from '../services/teacherService';
 import { getAuthErrorMessage } from '../services/authService';
-import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 
 export default function TeacherProfile() {
   const [bio, setBio] = useState('');
-  const [hourlyPrice, setHourlyPrice] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
   const [subject, setSubject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,14 +18,14 @@ export default function TeacherProfile() {
 
   useEffect(() => {
     setSuccess('');
-  }, [bio, hourlyPrice, subject]);
+  }, [bio, hourlyRate, subject]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!bio.trim() || !subject.trim() || !hourlyPrice) {
+    if (!bio.trim() || !subject.trim() || !hourlyRate) {
       setError('Completa todos los campos.');
       return;
     }
@@ -35,8 +34,9 @@ export default function TeacherProfile() {
     try {
       const response = await saveTeacherProfile({
         bio: bio.trim(),
-        hourly_price: Number(hourlyPrice),
+        hourly_rate: Number(hourlyRate),
         subject: subject.trim(),
+        avatar_url: '',
       });
       setSuccess(response.message || 'Perfil guardado correctamente.');
     } catch (err) {
@@ -56,7 +56,7 @@ export default function TeacherProfile() {
     <div className="page-form">
       <div className="page-header">
         <h1>Mi perfil de profesor</h1>
-        <p>Completa tu perfil para que los alumnos puedan encontrarte.</p>
+        <p>Completa tu perfil profesional en BridgeClass.</p>
       </div>
 
       <div className="form-card card">
@@ -76,14 +76,14 @@ export default function TeacherProfile() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="hourly_price">Precio por hora (€)</label>
+            <label htmlFor="hourly_rate">Tarifa por hora (€)</label>
             <input
-              id="hourly_price"
+              id="hourly_rate"
               type="number"
               min="0"
               step="0.01"
-              value={hourlyPrice}
-              onChange={(e) => setHourlyPrice(e.target.value)}
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
               placeholder="20"
             />
           </div>

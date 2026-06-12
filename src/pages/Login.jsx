@@ -24,8 +24,13 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await loginUser(email.trim(), password);
-      navigate('/dashboard');
+      const loggedUser = await loginUser(email.trim(), password);
+
+      if (loggedUser.role === 'teacher' || loggedUser.role === 'admin') {
+        navigate('/teacher/dashboard');
+      } else {
+        navigate('/student/dashboard');
+      }
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
@@ -37,7 +42,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card card">
         <h1>Iniciar sesión</h1>
-        <p className="auth-card__subtitle">Accede a tu cuenta de Clases Online</p>
+        <p className="auth-card__subtitle">Accede a tu cuenta de BridgeClass</p>
 
         <ErrorMessage message={error} />
 
@@ -72,7 +77,7 @@ export default function Login() {
         </form>
 
         <p className="auth-card__footer">
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+          ¿No tienes cuenta? <Link to="/register">Crear cuenta de profesor</Link>
         </p>
       </div>
     </div>
