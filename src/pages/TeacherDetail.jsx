@@ -78,8 +78,8 @@ export default function TeacherDetail() {
 
   return (
     <div className="teacher-detail">
-      <Link to="/teachers" className="back-link">
-        ← Volver a profesores
+      <Link to="/" className="back-link">
+        ← Volver al inicio
       </Link>
 
       <ErrorMessage message={error} />
@@ -90,7 +90,7 @@ export default function TeacherDetail() {
           <p className="teacher-detail__email">{teacher.email}</p>
           <div className="teacher-detail__meta">
             <span className="teacher-card__subject">{teacher.subject}</span>
-            <span className="teacher-card__price">{teacher.hourly_price} €/hora</span>
+            <span className="teacher-card__price">{teacher.hourly_rate ?? teacher.hourly_price} €/hora</span>
           </div>
           <p className="teacher-detail__bio">{teacher.bio}</p>
 
@@ -113,7 +113,7 @@ export default function TeacherDetail() {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={() => navigate('/my-classes')}
+                    onClick={() => navigate('/student/classes')}
                   >
                     Ver mis clases
                   </button>

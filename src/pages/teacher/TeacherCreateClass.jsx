@@ -46,7 +46,7 @@ export default function TeacherCreateClass() {
     setSubmitting(true);
     try {
       await createClass({
-        student_id: Number(studentId),
+        student_id: studentId,
         title: title.trim(),
         description: description.trim(),
         start_time: startTime,

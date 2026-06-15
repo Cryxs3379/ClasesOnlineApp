@@ -16,6 +16,10 @@ export default function MyClasses() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
 
+  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+  const classesPath = isTeacher ? '/teacher/classes' : '/student/classes';
+  const classroomBase = isTeacher ? '/teacher/classroom' : '/student/classroom';
+
   useEffect(() => {
     async function fetchClasses() {
       setLoading(true);
@@ -45,9 +49,9 @@ export default function MyClasses() {
       <div className="page-header">
         <h1>Mis clases</h1>
         <p>
-          {user?.role === 'teacher'
+          {isTeacher
             ? 'Clases que tienes programadas con tus alumnos.'
-            : 'Tus clases reservadas con profesores.'}
+            : 'Tus clases programadas con tu profesor.'}
         </p>
       </div>
 
@@ -57,25 +61,37 @@ export default function MyClasses() {
         <EmptyState
           title="No tienes clases"
           message={
-            user?.role === 'student'
-              ? 'Reserva tu primera clase desde el perfil de un profesor.'
-              : 'Cuando un alumno reserve contigo, aparecerá aquí.'
+            isTeacher
+              ? 'Programa una clase para uno de tus alumnos.'
+              : 'Tu profesor programará clases para ti.'
           }
           action={
-            user?.role === 'student' ? (
-              <Link to="/teachers" className="btn btn-primary">
-                Ver profesores
+            isTeacher ? (
+              <Link to="/teacher/classes/new" className="btn btn-primary">
+                Crear clase
               </Link>
-            ) : null
+            ) : (
+              <Link to="/student/classes" className="btn btn-primary">
+                Ver mis clases
+              </Link>
+            )
           }
         />
       ) : (
         <div className="cards-grid">
           {classes.map((classItem) => (
-            <ClassCard key={classItem.id} classItem={classItem} />
+            <ClassCard
+              key={classItem.id}
+              classItem={classItem}
+              classroomPath={`${classroomBase}/${classItem.id}`}
+            />
           ))}
         </div>
       )}
+
+      <Link to={classesPath} className="back-link" style={{ marginTop: '1rem' }}>
+        Ir a {isTeacher ? 'gestión de clases' : 'mis clases'}
+      </Link>
     </div>
   );
 }

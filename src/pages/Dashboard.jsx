@@ -6,6 +6,8 @@ export default function Dashboard() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
 
+  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+
   function handleLogout() {
     logoutUser();
     navigate('/login');
@@ -24,28 +26,28 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard__grid">
-        {user.role === 'student' && (
+        {isTeacher && (
           <>
-            <Link to="/teachers" className="card dashboard-card">
-              <h3>Buscar profesores</h3>
-              <p>Encuentra el profesor ideal para tu próxima clase.</p>
+            <Link to="/teacher/students" className="card dashboard-card">
+              <h3>Gestionar alumnos</h3>
+              <p>Crea y administra las cuentas de tus alumnos.</p>
             </Link>
-            <Link to="/my-classes" className="card dashboard-card">
+            <Link to="/teacher/classes" className="card dashboard-card">
               <h3>Mis clases</h3>
-              <p>Consulta tus clases reservadas y entra en la sala.</p>
+              <p>Consulta y programa clases con BridgeCall.</p>
             </Link>
           </>
         )}
 
-        {user.role === 'teacher' && (
+        {user.role === 'student' && (
           <>
-            <Link to="/teacher-profile" className="card dashboard-card">
-              <h3>Mi perfil de profesor</h3>
-              <p>Actualiza tu bio, materia y precio por hora.</p>
-            </Link>
-            <Link to="/my-classes" className="card dashboard-card">
+            <Link to="/student/classes" className="card dashboard-card">
               <h3>Mis clases</h3>
-              <p>Revisa las clases que tienes programadas.</p>
+              <p>Consulta tus clases y entra en BridgeCall.</p>
+            </Link>
+            <Link to="/student/calendar" className="card dashboard-card">
+              <h3>Calendario</h3>
+              <p>Visualiza tu agenda de clases.</p>
             </Link>
           </>
         )}

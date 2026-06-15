@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
+import LandingLayout from './layouts/LandingLayout';
 import MainLayout from './layouts/MainLayout';
 
 import Home from './pages/Home';
@@ -25,14 +26,18 @@ import StudentMessages from './pages/student/StudentMessages';
 import StudentDocuments from './pages/student/StudentDocuments';
 
 import Classroom from './pages/Classroom';
+import ClassroomRedirect from './pages/ClassroomRedirect';
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<MainLayout />}>
+          <Route element={<LandingLayout />}>
             <Route index element={<Home />} />
+          </Route>
+
+          <Route element={<MainLayout />}>
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
 
@@ -176,6 +181,17 @@ export default function App() {
             />
 
             <Route path="my-classes" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="classroom/:id"
+              element={
+                <ProtectedRoute>
+                  <ClassroomRedirect />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="teachers" element={<Navigate to="/" replace />} />
+            <Route path="teachers/:id" element={<Navigate to="/" replace />} />
+            <Route path="teacher-profile" element={<Navigate to="/teacher/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

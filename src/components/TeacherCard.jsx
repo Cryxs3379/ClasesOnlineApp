@@ -7,7 +7,7 @@ export default function TeacherCard({ teacher }) {
         <h3>{teacher.name}</h3>
         <span className="teacher-card__subject">{teacher.subject}</span>
       </div>
-      <p className="teacher-card__price">{teacher.hourly_price} €/hora</p>
+      <p className="teacher-card__price">{teacher.hourly_rate ?? teacher.hourly_price} €/hora</p>
       <p className="teacher-card__bio">{teacher.bio}</p>
       <Link to={`/teachers/${teacher.id}`} className="btn btn-primary btn-block">
         Ver perfil

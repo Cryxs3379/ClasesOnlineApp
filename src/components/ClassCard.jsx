@@ -8,9 +8,13 @@ function formatDateTime(dateString) {
   });
 }
 
-export default function ClassCard({ classItem }) {
+export default function ClassCard({ classItem, classroomPath }) {
+  const classroomUrl =
+    classroomPath || `/student/classroom/${classItem.id}`;
+
   return (
     <article className="card class-card">
+      {classItem.title && <h3>{classItem.title}</h3>}
       <div className="class-card__row">
         <span className="class-card__label">Profesor</span>
         <span>{classItem.teacher_name}</span>
@@ -33,8 +37,8 @@ export default function ClassCard({ classItem }) {
           {classItem.status}
         </span>
       </div>
-      <Link to={`/classroom/${classItem.id}`} className="btn btn-primary btn-block">
-        Entrar en clase
+      <Link to={classroomUrl} className="btn btn-primary btn-block">
+        Entrar a BridgeCall
       </Link>
     </article>
   );
