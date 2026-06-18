@@ -423,8 +423,8 @@ export default function TeacherAssignments() {
                     <span>Alumno: {getStudentName(assignment)}</span>
                     <span>Clase: {getClassName(assignment)}</span>
                     <span>Fecha límite: {formatDateTimeEs(assignment.due_date)}</span>
-                    <span>Creada: {formatDateTime(assignment.created_at)}</span>
-                    <span>Entregada: {formatDateTime(assignment.submitted_at)}</span>
+                    <span>Creada: {formatDateTimeEs(assignment.created_at)}</span>
+                    <span>Entregada: {formatDateTimeEs(assignment.submitted_at)}</span>
                     {assignment.teacher_feedback && (
                       <span>Feedback: {assignment.teacher_feedback}</span>
                     )}
