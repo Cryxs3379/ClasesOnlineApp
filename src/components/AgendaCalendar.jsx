@@ -186,21 +186,105 @@ function getClassStatusLabel(status) {
   return CLASS_STATUS_LABELS[status] || status || '—';
 }
 
-function getAssignmentMonthEventLabel(assignment) {
-  const displayStatus = getAssignmentDisplayStatus(assignment);
+function isPastEvent(event) {
+  if (!event?.start) return false;
+
+  const now = new Date();
+
+  if (event.type === 'class') {
+    const endDate = event.end ? new Date(event.end) : new Date(event.start);
+    return endDate.getTime() < now.getTime();
+  }
+
+  if (event.type === 'assignment') {
+    const assignment = event.raw;
+    if (assignment?.status === 'pending') {
+      return false;
+    }
+    return new Date(event.start).getTime() < now.getTime();
+  }
+
+  return new Date(event.start).getTime() < now.getTime();
+}
+
+function isUpcomingOrTodayEvent(event) {
+  return !isPastEvent(event);
+}
+
+function getClassDisplayStatus(event) {
+  if (event.status === 'cancelled') {
+    return { label: 'Cancelada', key: 'cancelled' };
+  }
+
+  if (isPastEvent(event)) {
+    return { label: 'Finalizada', key: 'past' };
+  }
+
+  return { label: getClassStatusLabel(event.status), key: event.status || 'scheduled' };
+}
+
+function sortUpcomingEvents(events) {
+  return [...events].sort(
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+  );
+}
+
+function sortPastEvents(events) {
+  return [...events].sort(
+    (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime()
+  );
+}
+
+function groupEventsByDayPreservingOrder(events) {
+  const groups = new Map();
+
+  events.forEach((event) => {
+    if (!event.start) return;
+    const key = startOfDay(event.start).toISOString();
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(event);
+  });
+
+  return Array.from(groups.entries()).map(([key, dayEvents]) => ({
+    date: new Date(key),
+    events: dayEvents,
+  }));
+}
+
+function getMonthEventLabel(event) {
+  if (event.type === 'class') {
+    return isPastEvent(event) ? '🎥 Finalizada' : '🎥 Clase';
+  }
+
+  const displayStatus = getAssignmentDisplayStatus(event.raw);
   if (displayStatus.key === 'overdue') {
     return '📝 Tarea atrasada';
+  }
+  if (isPastEvent(event)) {
+    return '📝 Pasada';
   }
   return '📝 Tarea';
 }
 
-function getAssignmentMonthEventClass(assignment) {
-  const displayStatus = getAssignmentDisplayStatus(assignment);
+function getMonthEventClass(event) {
+  if (event.type === 'class') {
+    if (isPastEvent(event)) {
+      return 'agenda-month__event agenda-month__event--past';
+    }
+    return 'agenda-month__event agenda-month__event--class';
+  }
+
+  const displayStatus = getAssignmentDisplayStatus(event.raw);
   if (displayStatus.key === 'overdue') {
     return 'agenda-month__event agenda-month__event--overdue';
   }
   if (displayStatus.key === 'submitted-late') {
     return 'agenda-month__event agenda-month__event--submitted-late';
+  }
+  if (isPastEvent(event)) {
+    return 'agenda-month__event agenda-month__event--past';
   }
   return 'agenda-month__event agenda-month__event--assignment';
 }
@@ -239,26 +323,6 @@ function sortEventsByDate(events) {
   return [...events].sort(
     (a, b) => new Date(a.start || 0).getTime() - new Date(b.start || 0).getTime()
   );
-}
-
-function groupEventsByDay(events) {
-  const groups = new Map();
-
-  events.forEach((event) => {
-    if (!event.start) return;
-    const key = startOfDay(event.start).toISOString();
-    if (!groups.has(key)) {
-      groups.set(key, []);
-    }
-    groups.get(key).push(event);
-  });
-
-  return Array.from(groups.entries())
-    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-    .map(([key, dayEvents]) => ({
-      date: new Date(key),
-      events: sortEventsByDate(dayEvents),
-    }));
 }
 
 function matchesFilter(event, filter) {
@@ -399,27 +463,11 @@ function AgendaMonthCalendar({
             >
               <span className="agenda-month__day-number">{day.getDate()}</span>
               <div className="agenda-month__events">
-                {visibleEvents.map((event) => {
-                  if (event.type === 'class') {
-                    return (
-                      <span
-                        key={`${event.type}-${event.id}`}
-                        className="agenda-month__event agenda-month__event--class"
-                      >
-                        🎥 Clase
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <span
-                      key={`${event.type}-${event.id}`}
-                      className={getAssignmentMonthEventClass(event.raw)}
-                    >
-                      {getAssignmentMonthEventLabel(event.raw)}
-                    </span>
-                  );
-                })}
+                {visibleEvents.map((event) => (
+                  <span key={`${event.type}-${event.id}`} className={getMonthEventClass(event)}>
+                    {getMonthEventLabel(event)}
+                  </span>
+                ))}
                 {hiddenCount > 0 && (
                   <span className="agenda-month__more">+{hiddenCount} más</span>
                 )}
@@ -440,9 +488,18 @@ function AgendaEventCard({ event, mode }) {
   if (event.type === 'class') {
     const classroomRoute = getClassroomRoute(mode, event.id);
     const isCancelled = event.status === 'cancelled';
+    const isPast = isPastEvent(event);
+    const classDisplay = getClassDisplayStatus(event);
+    const cardClasses = [
+      'agenda-event-card',
+      'agenda-event-card--class',
+      isPast ? 'agenda-event-card--past' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     return (
-      <article className="agenda-event-card agenda-event-card--class">
+      <article className={cardClasses}>
         <div className="agenda-event-main">
           <div className="agenda-event-meta">
             <span className="agenda-event-badge agenda-event-badge--class">Clase</span>
@@ -454,8 +511,8 @@ function AgendaEventCard({ event, mode }) {
           </p>
           <p className="agenda-event-meta">
             Estado:{' '}
-            <span className={`agenda-status agenda-status--${event.status || 'scheduled'}`}>
-              {getClassStatusLabel(event.status)}
+            <span className={`agenda-status agenda-status--${classDisplay.key}`}>
+              {classDisplay.label}
             </span>
           </p>
           {event.description && <p className="agenda-event-desc">{event.description}</p>}
@@ -472,8 +529,8 @@ function AgendaEventCard({ event, mode }) {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={isCancelled}
-              onClick={() => !isCancelled && navigate(classroomRoute)}
+              disabled={isCancelled || isPast}
+              onClick={() => !isCancelled && !isPast && navigate(classroomRoute)}
             >
               Entrar a BridgeCall
             </button>
@@ -485,10 +542,13 @@ function AgendaEventCard({ event, mode }) {
 
   const assignment = event.raw;
   const displayStatus = getAssignmentDisplayStatus(assignment);
+  const isPast = isPastEvent(event);
+  const isOverdue = displayStatus.key === 'overdue';
   const cardClasses = [
     'agenda-event-card',
     'agenda-event-card--assignment',
-    displayStatus.key === 'overdue' ? 'agenda-event-card--overdue' : '',
+    isOverdue ? 'agenda-event-card--overdue' : '',
+    isPast && !isOverdue ? 'agenda-event-card--past' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -515,6 +575,11 @@ function AgendaEventCard({ event, mode }) {
         </p>
         {displayStatus.warning && (
           <p className="agenda-event-warning">⚠️ {displayStatus.warning}</p>
+        )}
+        {isPast && !isOverdue && (
+          <p className="agenda-event-warning agenda-event-warning--past">
+            Esta tarea ya pasó de fecha.
+          </p>
         )}
         {event.description && <p className="agenda-event-desc">{event.description}</p>}
         {hasAttachment(assignment) && (
@@ -626,15 +691,48 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
     );
   }, [filteredEvents, selectedDate]);
 
-  const groupedDays = useMemo(
-    () => groupEventsByDay(eventsForAgenda),
+  const upcomingEvents = useMemo(
+    () => sortUpcomingEvents(eventsForAgenda.filter(isUpcomingOrTodayEvent)),
     [eventsForAgenda]
+  );
+
+  const pastEvents = useMemo(
+    () => sortPastEvents(eventsForAgenda.filter(isPastEvent)),
+    [eventsForAgenda]
+  );
+
+  const upcomingGroupedDays = useMemo(
+    () => groupEventsByDayPreservingOrder(upcomingEvents),
+    [upcomingEvents]
+  );
+
+  const pastGroupedDays = useMemo(
+    () => groupEventsByDayPreservingOrder(pastEvents),
+    [pastEvents]
   );
 
   const showUndated =
     matchesUndatedFilter(activeFilter) && undatedAssignments.length > 0 && !selectedDate;
 
-  const hasVisibleEvents = groupedDays.length > 0 || showUndated;
+  const hasVisibleEvents =
+    upcomingGroupedDays.length > 0 || pastGroupedDays.length > 0 || showUndated;
+
+  function renderDayGroups(groups) {
+    return groups.map((group) => (
+      <section key={group.date.toISOString()} className="agenda-day-group">
+        <h2 className="agenda-day-heading">{formatDayHeading(group.date)}</h2>
+        <div className="agenda-day-events">
+          {group.events.map((event) => (
+            <AgendaEventCard
+              key={`${event.type}-${event.id}`}
+              event={event}
+              mode={mode}
+            />
+          ))}
+        </div>
+      </section>
+    ));
+  }
 
   function handleFilterChange(filterId) {
     setActiveFilter(filterId);
@@ -745,20 +843,14 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
         />
       ) : (
         <div className="agenda-timeline">
-          {groupedDays.map((group) => (
-            <section key={group.date.toISOString()} className="agenda-day-group">
-              <h2 className="agenda-day-heading">{formatDayHeading(group.date)}</h2>
-              <div className="agenda-day-events">
-                {group.events.map((event) => (
-                  <AgendaEventCard
-                    key={`${event.type}-${event.id}`}
-                    event={event}
-                    mode={mode}
-                  />
-                ))}
-              </div>
+          {renderDayGroups(upcomingGroupedDays)}
+
+          {pastGroupedDays.length > 0 && (
+            <section className="agenda-past-section">
+              <h2 className="agenda-past-heading">Eventos pasados</h2>
+              {renderDayGroups(pastGroupedDays)}
             </section>
-          ))}
+          )}
 
           {showUndated && (
             <section className="agenda-day-group">

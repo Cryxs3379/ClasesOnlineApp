@@ -1467,6 +1467,37 @@ img {
   border-left-color: #ef4444;
 }
 
+.agenda-month__event--past {
+  background: rgba(34, 197, 94, 0.14);
+  color: #166534;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.agenda-event-card--past {
+  background: rgba(34, 197, 94, 0.06);
+  border-left-color: #22c55e;
+}
+
+.agenda-status--past {
+  background: rgba(34, 197, 94, 0.14);
+  color: #166534;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.agenda-past-section {
+  margin-top: 2rem;
+}
+
+.agenda-past-heading {
+  font-size: 1.1rem;
+  color: #166534;
+  margin-bottom: 1rem;
+}
+
+.agenda-event-warning--past {
+  color: #166534;
+}
+
 .agenda-event-main {
   flex: 1 1 280px;
   min-width: 0;
