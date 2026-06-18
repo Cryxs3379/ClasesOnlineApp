@@ -181,7 +181,7 @@ export default function MessagesPanel({ mode }) {
       if (currentId) {
         leaveConversation(currentId);
       }
-      disconnectSocket();
+      // No desconectar el socket global: NotificationBell lo usa en toda la app.
     };
   }, [user?.id, loadConversations, handleAuthError]);
 

@@ -11,6 +11,9 @@ export function connectSocket(token) {
   }
 
   if (socket && currentToken === token) {
+    if (!socket.connected && !socket.active) {
+      socket.connect();
+    }
     return socket;
   }
 
@@ -23,6 +26,7 @@ export function connectSocket(token) {
   socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
+    autoConnect: true,
   });
 
   socket.on('connect_error', (error) => {

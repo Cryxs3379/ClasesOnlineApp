@@ -7,6 +7,7 @@ import {
   getMe,
 } from '../services/authService';
 import { saveUser } from '../storage/authStorage';
+import { disconnectSocket } from '../socket/socketClient';
 
 const AuthContext = createContext(null);
 
@@ -36,6 +37,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logoutUser = useCallback(() => {
+    disconnectSocket();
     logoutService();
     setUser(null);
   }, []);

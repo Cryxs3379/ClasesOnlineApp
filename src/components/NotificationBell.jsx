@@ -10,7 +10,7 @@ import {
   deleteNotification,
 } from '../services/notificationService';
 import { getAuthErrorMessage } from '../services/authService';
-import { connectSocket, getSocket } from '../socket/socketClient';
+import { connectSocket } from '../socket/socketClient';
 
 function formatNotificationDate(dateString) {
   if (!dateString) return '';
@@ -78,17 +78,15 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user?.id) return undefined;
 
     const token = getToken();
-    if (token) {
-      connectSocket(token);
-    }
+    if (!token) return undefined;
+
+    const socket = connectSocket(token);
+    if (!socket) return undefined;
 
     loadUnreadCount();
-
-    const socket = getSocket();
-    if (!socket) return undefined;
 
     function onNotificationNew(payload) {
       const notification = payload?.notification;
