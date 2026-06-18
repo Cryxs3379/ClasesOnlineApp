@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-const domain = 'meet.trujillolucena.es';
+import { JITSI_DOMAIN } from '../constants/config';
 
 export default function BridgeCallRoom({ roomName, displayName, email, onLeave }) {
   const containerRef = useRef(null);
@@ -20,7 +19,7 @@ export default function BridgeCallRoom({ roomName, displayName, email, onLeave }
         return;
       }
 
-      const api = new window.JitsiMeetExternalAPI(domain, {
+      const api = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
         roomName,
         parentNode: containerRef.current,
         width: '100%',

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getClassById, updateClassStatus } from '../services/classService';
 import { getAuthErrorMessage } from '../services/authService';
+import { JITSI_URL } from '../constants/config';
 import { useAuth } from '../auth/AuthContext';
 import BridgeCallRoom from '../components/BridgeCallRoom';
 import WhiteboardOverlayPlaceholder from '../components/WhiteboardOverlayPlaceholder';
@@ -31,7 +32,7 @@ export default function Classroom() {
   const classesPath = isTeacher ? '/teacher/classes' : '/student/classes';
 
   const roomUrl = classData?.jitsi_room_name
-    ? `https://meet.trujillolucena.es/${classData.jitsi_room_name}`
+    ? `${JITSI_URL}/${classData.jitsi_room_name}`
     : '';
 
   useEffect(() => {

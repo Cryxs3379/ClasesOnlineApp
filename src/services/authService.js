@@ -7,7 +7,7 @@ import {
 } from '../storage/authStorage';
 
 export async function login(email, password) {
-  const response = await api.post('/api/auth/login', { email, password });
+  const response = await api.post('/auth/login', { email, password });
   const payload = response.data.data;
   const { user, token } = payload;
 
@@ -19,7 +19,7 @@ export async function login(email, password) {
 }
 
 export async function register(data) {
-  const response = await api.post('/api/auth/register', data);
+  const response = await api.post('/auth/register', data);
   const payload = response.data.data;
   const { user, token } = payload;
 
@@ -31,7 +31,7 @@ export async function register(data) {
 }
 
 export async function getMe() {
-  const response = await api.get('/api/auth/me');
+  const response = await api.get('/auth/me');
   return response.data.data.user;
 }
 
