@@ -159,7 +159,7 @@ export default function TeacherDocuments() {
   if (loading) return <Loading />;
 
   return (
-    <div className="documents-grid">
+    <div className="workspace-page documents-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Materiales</span>
@@ -171,11 +171,13 @@ export default function TeacherDocuments() {
       <ErrorMessage message={error} />
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="form-card card">
-        <h2>Subir documento</h2>
+      <div className="form-card card upload-card">
+        <h2 className="workspace-section-title">Subir material</h2>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">
-            <label htmlFor="doc-title">Título</label>
+            <label htmlFor="doc-title" className="form-label">
+              Título
+            </label>
             <input
               id="doc-title"
               type="text"
@@ -186,7 +188,9 @@ export default function TeacherDocuments() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="doc-description">Descripción</label>
+            <label htmlFor="doc-description" className="form-label">
+              Descripción
+            </label>
             <textarea
               id="doc-description"
               rows="3"
@@ -196,9 +200,11 @@ export default function TeacherDocuments() {
             />
           </div>
 
-          <div className="documents-form__row">
+          <div className="form-grid documents-form__row">
             <div className="form-group">
-              <label htmlFor="doc-student">Alumno</label>
+              <label htmlFor="doc-student" className="form-label">
+                Alumno
+              </label>
               <select
                 id="doc-student"
                 value={studentId}
@@ -214,7 +220,9 @@ export default function TeacherDocuments() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="doc-class">Clase</label>
+              <label htmlFor="doc-class" className="form-label">
+                Clase
+              </label>
               <select
                 id="doc-class"
                 value={classId}
@@ -230,49 +238,56 @@ export default function TeacherDocuments() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="doc-file">Archivo</label>
+          <div className="form-group input-shell">
+            <label htmlFor="doc-file" className="form-label">
+              Archivo
+            </label>
             <input
               id="doc-file"
               type="file"
+              className="file-input"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Subiendo...' : 'Subir documento'}
+          <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+            {submitting ? 'Subiendo...' : 'Subir material'}
           </button>
         </form>
       </div>
 
-      <div className="card">
-        <h2>Documentos asignados</h2>
+      <section className="dashboard-section-card card">
+        <div className="dashboard-section-card__header">
+          <h2 className="workspace-section-title">Materiales compartidos</h2>
+          <span className="badge badge-muted">{documents.length}</span>
+        </div>
 
         {documents.length === 0 ? (
           <EmptyState
-            title="Sin documentos"
-            message="Sube tu primer material para compartirlo con tus alumnos."
+            icon="📚"
+            title="Todavía no hay materiales"
+            message="Sube documentos para compartirlos con tus alumnos."
           />
         ) : (
-          <div className="documents-list">
+          <div className="documents-grid">
             {documents.map((doc) => (
-              <article key={doc.id} className="document-item">
-                <div className="document-item__main">
-                  <h3>{doc.title}</h3>
-                  {doc.description && <p className="document-item__desc">{doc.description}</p>}
-                  <div className="document-item__meta">
-                    <span>Alumno: {getDocumentStudentName(doc)}</span>
-                    <span>Clase: {getDocumentClassName(doc)}</span>
-                    <span>Archivo: {doc.original_filename || doc.originalFilename || '—'}</span>
-                    <span>Tipo: {doc.mime_type || doc.mimeType || '—'}</span>
-                    <span>Tamaño: {formatFileSize(doc.file_size || doc.fileSize)}</span>
-                    <span>Fecha: {formatDate(doc.created_at || doc.createdAt)}</span>
-                  </div>
+              <article key={doc.id} className="document-card card">
+                <span className="document-card__icon" aria-hidden="true">
+                  📄
+                </span>
+                <h3>{doc.title}</h3>
+                {doc.description ? <p className="document-card__desc">{doc.description}</p> : null}
+                <div className="document-card__meta">
+                  <span>Alumno: {getDocumentStudentName(doc)}</span>
+                  <span>Clase: {getDocumentClassName(doc)}</span>
+                  <span>{doc.original_filename || doc.originalFilename || '—'}</span>
+                  <span>{formatFileSize(doc.file_size || doc.fileSize)}</span>
+                  <span>{formatDate(doc.created_at || doc.createdAt)}</span>
                 </div>
-                <div className="document-item__actions">
+                <div className="document-card__actions">
                   <button
                     type="button"
-                    className="btn btn-outline btn-sm"
+                    className="btn btn-primary btn-sm btn-block"
                     onClick={() => handleDownload(doc)}
                     disabled={downloadingId === doc.id}
                   >
@@ -280,18 +295,18 @@ export default function TeacherDocuments() {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-ghost btn-sm btn-block"
                     onClick={() => handleDelete(doc)}
                     disabled={deletingId === doc.id}
                   >
-                    {deletingId === doc.id ? 'Eliminando...' : 'Borrar'}
+                    {deletingId === doc.id ? 'Eliminando...' : 'Eliminar'}
                   </button>
                 </div>
               </article>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

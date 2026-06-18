@@ -72,7 +72,7 @@ export default function TeacherCreateClass() {
   if (loading) return <Loading />;
 
   return (
-    <div className="page-form">
+    <div className="workspace-page page-form">
       <Link to="/teacher/classes" className="back-link">
         ← Volver a clases
       </Link>
@@ -85,71 +85,97 @@ export default function TeacherCreateClass() {
         </div>
       </div>
 
-      <div className="form-card card">
+      <div className="form-card card upload-card">
         <ErrorMessage message={error} />
 
         <form onSubmit={handleSubmit} className="form">
-          <div className="form-group">
-            <label htmlFor="student_id">Alumno</label>
-            <select
-              id="student_id"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-            >
-              <option value="">Selecciona un alumno</option>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.name} ({student.email})
-                </option>
-              ))}
-            </select>
-          </div>
+          <fieldset className="form-section">
+            <legend className="form-section__title">1. Datos de la clase</legend>
+            <div className="form-group">
+              <label htmlFor="title" className="form-label">
+                Título
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Clase de repaso"
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="title">Título</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Clase de repaso"
-            />
-          </div>
+            <div className="form-group">
+              <label htmlFor="description" className="form-label">
+                Descripción
+              </label>
+              <textarea
+                id="description"
+                rows="4"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Objetivos de la sesión..."
+              />
+            </div>
+          </fieldset>
 
-          <div className="form-group">
-            <label htmlFor="description">Descripción</label>
-            <textarea
-              id="description"
-              rows="4"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Objetivos de la sesión..."
-            />
-          </div>
+          <fieldset className="form-section">
+            <legend className="form-section__title">2. Alumno</legend>
+            <div className="form-group">
+              <label htmlFor="student_id" className="form-label">
+                Selecciona alumno
+              </label>
+              <select
+                id="student_id"
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+              >
+                <option value="">Selecciona un alumno</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.name} ({student.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </fieldset>
 
-          <div className="form-group">
-            <label htmlFor="start_time">Inicio</label>
-            <input
-              id="start_time"
-              type="datetime-local"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-          </div>
+          <fieldset className="form-section">
+            <legend className="form-section__title">3. Fecha y hora</legend>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="start_time" className="form-label">
+                  Inicio
+                </label>
+                <input
+                  id="start_time"
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="end_time">Fin</label>
-            <input
-              id="end_time"
-              type="datetime-local"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-          </div>
+              <div className="form-group">
+                <label htmlFor="end_time" className="form-label">
+                  Fin
+                </label>
+                <input
+                  id="end_time"
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </fieldset>
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Creando...' : 'Crear clase'}
-          </button>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+              {submitting ? 'Creando...' : 'Crear clase'}
+            </button>
+            <Link to="/teacher/classes" className="btn btn-outline btn-block">
+              Cancelar
+            </Link>
+          </div>
         </form>
       </div>
     </div>

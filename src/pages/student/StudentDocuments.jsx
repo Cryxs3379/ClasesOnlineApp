@@ -65,43 +65,48 @@ export default function StudentDocuments() {
   if (loading) return <Loading />;
 
   return (
-    <div className="documents-grid">
+    <div className="workspace-page documents-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Materiales</span>
           <h1>Documentos</h1>
-          <p>Materiales y tareas compartidos por tu profesor.</p>
+          <p>Materiales y recursos compartidos por tu profesor.</p>
         </div>
       </div>
 
       <ErrorMessage message={error} />
 
-      <div className="card">
-        <h2>Documentos asignados</h2>
+      <section className="dashboard-section-card card">
+        <div className="dashboard-section-card__header">
+          <h2 className="workspace-section-title">Documentos asignados</h2>
+          <span className="badge badge-muted">{documents.length}</span>
+        </div>
 
         {documents.length === 0 ? (
           <EmptyState
-            title="Sin documentos"
-            message="Cuando tu profesor comparta materiales, aparecerán aquí."
+            icon="📚"
+            title="Todavía no hay materiales"
+            message="Cuando tu profesor comparta materiales aparecerán aquí."
           />
         ) : (
-          <div className="documents-list">
+          <div className="documents-grid">
             {documents.map((doc) => (
-              <article key={doc.id} className="document-item">
-                <div className="document-item__main">
-                  <h3>{doc.title}</h3>
-                  {doc.description && <p className="document-item__desc">{doc.description}</p>}
-                  <div className="document-item__meta">
-                    <span>Profesor: {getDocumentTeacherName(doc)}</span>
-                    <span>Clase: {getDocumentClassName(doc)}</span>
-                    <span>Archivo: {doc.original_filename || doc.originalFilename || '—'}</span>
-                    <span>Fecha: {formatDate(doc.created_at || doc.createdAt)}</span>
-                  </div>
+              <article key={doc.id} className="document-card card">
+                <span className="document-card__icon" aria-hidden="true">
+                  📄
+                </span>
+                <h3>{doc.title}</h3>
+                {doc.description ? <p className="document-card__desc">{doc.description}</p> : null}
+                <div className="document-card__meta">
+                  <span>Profesor: {getDocumentTeacherName(doc)}</span>
+                  <span>Clase: {getDocumentClassName(doc)}</span>
+                  <span>{doc.original_filename || doc.originalFilename || '—'}</span>
+                  <span>{formatDate(doc.created_at || doc.createdAt)}</span>
                 </div>
-                <div className="document-item__actions">
+                <div className="document-card__actions">
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-primary btn-sm btn-block"
                     onClick={() => handleDownload(doc)}
                     disabled={downloadingId === doc.id}
                   >
@@ -112,7 +117,7 @@ export default function StudentDocuments() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

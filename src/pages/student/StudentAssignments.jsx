@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   getAssignments,
   submitAssignment,
@@ -10,7 +10,7 @@ import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDate, formatFileSize } from '../../utils/documentFormatters';
 import { formatDateTimeEs } from '../../utils/dateTimeUtils';
-import { getAssignmentDisplayStatus } from '../../utils/assignmentStatus';
+import { getAssignmentDisplayStatus, isAssignmentOverdue } from '../../utils/assignmentStatus';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
@@ -173,43 +173,59 @@ export default function StudentAssignments() {
   if (loading) return <Loading />;
 
   return (
-    <div className="assignments-page assignments-grid">
+    <div className="workspace-page assignments-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Deberes</span>
           <h1>Tareas</h1>
           <p>Consulta y entrega las tareas asignadas por tu profesor.</p>
         </div>
+        <Link to="/student/calendar" className="btn btn-outline">
+          Ver calendario
+        </Link>
       </div>
 
       <ErrorMessage message={error} />
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="card">
-        <h2>Mis tareas</h2>
+      <section className="dashboard-section-card card">
+        <div className="dashboard-section-card__header">
+          <h2 className="workspace-section-title">Mis tareas</h2>
+        </div>
 
         {assignments.length === 0 ? (
           <EmptyState
+            icon="📝"
             title="Sin tareas"
             message="Cuando tu profesor te asigne tareas, aparecerán aquí."
           />
         ) : (
-          <div className="assignments-grid">
+          <div className="assignment-board">
             {assignments.map((assignment) => {
               const submissionFilename = getSubmissionFilename(assignment);
               const attachmentFilename = getAttachmentFilename(assignment);
               const showSubmitForm = canSubmit(assignment.status);
+              const overdue = isAssignmentOverdue(assignment);
+              const cardClasses = [
+                'assignment-card',
+                'card',
+                overdue ? 'assignment-card--overdue' : '',
+                assignment.status === 'pending' ? 'assignment-card--pending' : '',
+                assignment.status === 'reviewed' ? 'assignment-card--reviewed' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
 
               return (
-                <article key={assignment.id} className="assignment-card card">
+                <article key={assignment.id} className={cardClasses}>
                   <div className="assignment-card__header">
                     <h3>{assignment.title}</h3>
                     <AssignmentStatusBadge assignment={assignment} />
                   </div>
 
-                  {assignment.description && (
+                  {assignment.description ? (
                     <p className="assignment-card__desc">{assignment.description}</p>
-                  )}
+                  ) : null}
 
                   <div className="assignment-meta">
                     <span>Profesor: {getTeacherName(assignment)}</span>
@@ -217,12 +233,16 @@ export default function StudentAssignments() {
                     <span>Fecha límite: {formatDateTimeEs(assignment.due_date)}</span>
                     <span>Creada: {formatDate(assignment.created_at)}</span>
                     <span>Entregada: {formatDateTimeEs(assignment.submitted_at)}</span>
-                    {assignment.teacher_feedback && (
-                      <span>Feedback: {assignment.teacher_feedback}</span>
-                    )}
                   </div>
 
-                  {attachmentFilename && (
+                  {assignment.teacher_feedback ? (
+                    <div className="assignment-feedback">
+                      <strong>Comentario del profesor</strong>
+                      <p>{assignment.teacher_feedback}</p>
+                    </div>
+                  ) : null}
+
+                  {attachmentFilename ? (
                     <div className="assignment-file-block assignment-material">
                       <strong>Material de la tarea</strong>
                       <p className="assignment-file-name">{attachmentFilename}</p>
@@ -237,15 +257,15 @@ export default function StudentAssignments() {
                           : 'Descargar material'}
                       </button>
                     </div>
-                  )}
+                  ) : null}
 
-                  {(assignment.submission_text || submissionFilename) && (
+                  {(assignment.submission_text || submissionFilename) ? (
                     <div className="assignment-file-block assignment-submission">
-                      <strong>Entrega del alumno</strong>
-                      {assignment.submission_text && (
+                      <strong>Tu entrega</strong>
+                      {assignment.submission_text ? (
                         <p className="assignment-file-name">{assignment.submission_text}</p>
-                      )}
-                      {submissionFilename && (
+                      ) : null}
+                      {submissionFilename ? (
                         <p className="assignment-file-name">
                           {submissionFilename}
                           {assignment.submission_file_size || assignment.submissionFileSize
@@ -254,8 +274,8 @@ export default function StudentAssignments() {
                               )})`
                             : ''}
                         </p>
-                      )}
-                      {submissionFilename && (
+                      ) : null}
+                      {submissionFilename ? (
                         <button
                           type="button"
                           className="btn btn-outline btn-sm"
@@ -266,9 +286,9 @@ export default function StudentAssignments() {
                             ? 'Descargando...'
                             : 'Descargar entrega'}
                         </button>
-                      )}
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
 
                   {showSubmitForm ? (
                     <form
@@ -279,7 +299,9 @@ export default function StudentAssignments() {
                       }}
                     >
                       <div className="form-group">
-                        <label htmlFor={`submit-text-${assignment.id}`}>Tu entrega</label>
+                        <label htmlFor={`submit-text-${assignment.id}`} className="form-label">
+                          Tu entrega
+                        </label>
                         <textarea
                           id={`submit-text-${assignment.id}`}
                           rows="4"
@@ -298,13 +320,15 @@ export default function StudentAssignments() {
                         />
                       </div>
 
-                      <div className="form-group">
-                        <label htmlFor={`submit-file-${assignment.id}`}>
+                      <div className="form-group input-shell">
+                        <label htmlFor={`submit-file-${assignment.id}`} className="form-label">
                           Archivo (opcional)
                         </label>
                         <input
                           id={`submit-file-${assignment.id}`}
+                          name="file"
                           type="file"
+                          className="file-input"
                           onChange={(e) =>
                             setSubmitFiles((prev) => ({
                               ...prev,
@@ -316,7 +340,7 @@ export default function StudentAssignments() {
 
                       <button
                         type="submit"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary btn-sm btn-block"
                         disabled={submittingId === assignment.id}
                       >
                         {submittingId === assignment.id
@@ -338,7 +362,7 @@ export default function StudentAssignments() {
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

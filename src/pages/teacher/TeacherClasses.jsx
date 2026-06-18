@@ -3,17 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getMyClasses, updateClassStatus } from '../../services/classService';
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
+import { CLASS_FILTER_OPTIONS, filterClasses } from '../../utils/classDisplay';
+import ClassCard from '../../components/ClassCard';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
-
-function formatDateTime(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
 
 export default function TeacherClasses() {
   const [classes, setClasses] = useState([]);
@@ -46,10 +40,10 @@ export default function TeacherClasses() {
     loadClasses();
   }, [logoutUser, navigate]);
 
-  const filteredClasses = useMemo(() => {
-    if (statusFilter === 'all') return classes;
-    return classes.filter((item) => item.status === statusFilter);
-  }, [classes, statusFilter]);
+  const filteredClasses = useMemo(
+    () => filterClasses(classes, statusFilter),
+    [classes, statusFilter]
+  );
 
   async function handleComplete(classId) {
     try {
@@ -65,7 +59,7 @@ export default function TeacherClasses() {
   if (loading) return <Loading />;
 
   return (
-    <div className="dashboard-pro">
+    <div className="workspace-page classes-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Programación</span>
@@ -79,69 +73,48 @@ export default function TeacherClasses() {
 
       <ErrorMessage message={error} />
 
-      <div className="form-group" style={{ maxWidth: '240px', marginBottom: '1rem' }}>
-        <label htmlFor="statusFilter">Filtrar por estado</label>
-        <select
-          id="statusFilter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Todas</option>
-          <option value="scheduled">Programadas</option>
-          <option value="completed">Completadas</option>
-          <option value="cancelled">Canceladas</option>
-        </select>
-      </div>
+      <section className="workspace-toolbar">
+        <div className="filter-pills" role="tablist" aria-label="Filtrar clases">
+          {CLASS_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === option.id}
+              className={`filter-pill${statusFilter === option.id ? ' active' : ''}`}
+              onClick={() => setStatusFilter(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <Link to="/teacher/classes/new" className="btn btn-outline workspace-toolbar__action">
+          + Nueva clase
+        </Link>
+      </section>
 
       {filteredClasses.length === 0 && !error ? (
         <EmptyState
+          icon="🎥"
           title="No hay clases"
           message="Programa una clase para uno de tus alumnos."
           action={
-            <Link to="/teacher/classes/new" className="btn btn-primary">
+            <Link to="/teacher/classes/new" className="btn btn-primary btn-block">
               Crear clase
             </Link>
           }
         />
       ) : (
-        <div className="cards-grid">
+        <section className="class-card-grid">
           {filteredClasses.map((classItem) => (
-            <article key={classItem.id} className="card class-card">
-              <h3>{classItem.title}</h3>
-              <div className="class-card__row">
-                <span className="class-card__label">Alumno</span>
-                <span>{classItem.student_name}</span>
-              </div>
-              <div className="class-card__row">
-                <span className="class-card__label">Inicio</span>
-                <span>{formatDateTime(classItem.start_time)}</span>
-              </div>
-              <div className="class-card__row">
-                <span className="class-card__label">Estado</span>
-                <span className={`status-badge status-badge--${classItem.status}`}>
-                  {classItem.status}
-                </span>
-              </div>
-              <div className="class-card__actions">
-                <Link
-                  to={`/teacher/classroom/${classItem.id}`}
-                  className="btn btn-primary btn-block"
-                >
-                  Entrar a BridgeCall
-                </Link>
-                {classItem.status === 'scheduled' && (
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-block"
-                    onClick={() => handleComplete(classItem.id)}
-                  >
-                    Marcar completada
-                  </button>
-                )}
-              </div>
-            </article>
+            <ClassCard
+              key={classItem.id}
+              classItem={classItem}
+              role="teacher"
+              onComplete={handleComplete}
+            />
           ))}
-        </div>
+        </section>
       )}
     </div>
   );

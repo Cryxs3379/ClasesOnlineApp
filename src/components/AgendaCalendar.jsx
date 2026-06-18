@@ -776,7 +776,7 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
   if (loading) return <Loading />;
 
   return (
-    <div className="agenda-page">
+    <div className="workspace-page agenda-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Agenda</span>
@@ -819,12 +819,12 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
         </article>
       </section>
 
-      <div className="agenda-filters">
+      <div className="agenda-filters filter-pills">
         {FILTERS.map((filter) => (
           <button
             key={filter.id}
             type="button"
-            className={`agenda-filter-button ${activeFilter === filter.id ? 'active' : ''}`}
+            className={`agenda-filter-button filter-pill ${activeFilter === filter.id ? 'active' : ''}`}
             onClick={() => handleFilterChange(filter.id)}
           >
             {filter.label}

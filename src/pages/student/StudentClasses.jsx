@@ -3,17 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getMyClasses } from '../../services/classService';
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
+import { CLASS_FILTER_OPTIONS, filterClasses } from '../../utils/classDisplay';
+import ClassCard from '../../components/ClassCard';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
-
-function formatDateTime(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
 
 export default function StudentClasses() {
   const [classes, setClasses] = useState([]);
@@ -46,72 +40,62 @@ export default function StudentClasses() {
     loadClasses();
   }, [logoutUser, navigate]);
 
-  const filteredClasses = useMemo(() => {
-    if (statusFilter === 'all') return classes;
-    return classes.filter((item) => item.status === statusFilter);
-  }, [classes, statusFilter]);
+  const filteredClasses = useMemo(
+    () => filterClasses(classes, statusFilter),
+    [classes, statusFilter]
+  );
 
   if (loading) return <Loading />;
 
   return (
-    <div className="dashboard-pro">
+    <div className="workspace-page classes-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Mis sesiones</span>
           <h1>Mis clases</h1>
           <p>Consulta tus clases programadas con tu profesor.</p>
         </div>
+        <Link to="/student/calendar" className="btn btn-outline">
+          Ver calendario
+        </Link>
       </div>
 
       <ErrorMessage message={error} />
 
-      <div className="form-group" style={{ maxWidth: '240px', marginBottom: '1rem' }}>
-        <label htmlFor="statusFilter">Filtrar por estado</label>
-        <select
-          id="statusFilter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Todas</option>
-          <option value="scheduled">Programadas</option>
-          <option value="completed">Completadas</option>
-          <option value="cancelled">Canceladas</option>
-        </select>
-      </div>
+      <section className="workspace-toolbar">
+        <div className="filter-pills" role="tablist" aria-label="Filtrar clases">
+          {CLASS_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === option.id}
+              className={`filter-pill${statusFilter === option.id ? ' active' : ''}`}
+              onClick={() => setStatusFilter(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {filteredClasses.length === 0 && !error ? (
         <EmptyState
+          icon="🎥"
           title="No tienes clases"
           message="Tu profesor programará clases para ti."
+          action={
+            <Link to="/student/calendar" className="btn btn-outline btn-block">
+              Ver calendario
+            </Link>
+          }
         />
       ) : (
-        <div className="cards-grid">
+        <section className="class-card-grid">
           {filteredClasses.map((classItem) => (
-            <article key={classItem.id} className="card class-card">
-              <h3>{classItem.title}</h3>
-              <div className="class-card__row">
-                <span className="class-card__label">Profesor</span>
-                <span>{classItem.teacher_name}</span>
-              </div>
-              <div className="class-card__row">
-                <span className="class-card__label">Inicio</span>
-                <span>{formatDateTime(classItem.start_time)}</span>
-              </div>
-              <div className="class-card__row">
-                <span className="class-card__label">Estado</span>
-                <span className={`status-badge status-badge--${classItem.status}`}>
-                  {classItem.status}
-                </span>
-              </div>
-              <Link
-                to={`/student/classroom/${classItem.id}`}
-                className="btn btn-primary btn-block"
-              >
-                Entrar a BridgeCall
-              </Link>
-            </article>
+            <ClassCard key={classItem.id} classItem={classItem} role="student" />
           ))}
-        </div>
+        </section>
       )}
     </div>
   );

@@ -15,7 +15,7 @@ import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
 import { formatFileSize } from '../../utils/documentFormatters';
 import { localDateTimeToUtcIso, formatDateTimeEs } from '../../utils/dateTimeUtils';
-import { getAssignmentDisplayStatus } from '../../utils/assignmentStatus';
+import { getAssignmentDisplayStatus, isAssignmentOverdue } from '../../utils/assignmentStatus';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
@@ -294,7 +294,7 @@ export default function TeacherAssignments() {
   if (loading) return <Loading />;
 
   return (
-    <div className="assignments-page assignments-grid">
+    <div className="workspace-page assignments-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Deberes</span>
@@ -306,118 +306,156 @@ export default function TeacherAssignments() {
       <ErrorMessage message={error} />
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="form-card card assignment-form">
-        <h2>Nueva tarea</h2>
+      <div className="form-card card upload-card assignment-form">
+        <h2 className="workspace-section-title">Nueva tarea</h2>
         <form onSubmit={handleCreate} className="form">
-          <div className="form-group">
-            <label htmlFor="assignment-title">Título</label>
-            <input
-              id="assignment-title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Unit 4 · Writing exercise"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="assignment-description">Descripción</label>
-            <textarea
-              id="assignment-description"
-              rows="3"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Instrucciones para el alumno..."
-            />
-          </div>
-
-          <div className="documents-form__row">
+          <fieldset className="form-section">
+            <legend className="form-section__title">Datos de la tarea</legend>
             <div className="form-group">
-              <label htmlFor="assignment-student">Alumno</label>
-              <select
-                id="assignment-student"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-              >
-                <option value="">Selecciona alumno (opcional si hay clase)</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="assignment-title" className="form-label">
+                Título
+              </label>
+              <input
+                id="assignment-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Unit 4 · Writing exercise"
+              />
             </div>
 
             <div className="form-group">
-              <label htmlFor="assignment-class">Clase</label>
-              <select
-                id="assignment-class"
-                value={classId}
-                onChange={(e) => handleClassChange(e.target.value)}
-              >
-                <option value="">Selecciona clase (opcional)</option>
-                {classes.map((classItem) => (
-                  <option key={classItem.id} value={classItem.id}>
-                    {classItem.title} · {classItem.student_name}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="assignment-description" className="form-label">
+                Descripción
+              </label>
+              <textarea
+                id="assignment-description"
+                rows="3"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Instrucciones para el alumno..."
+              />
             </div>
-          </div>
+          </fieldset>
 
-          <div className="form-group">
-            <label htmlFor="assignment-due-date">Fecha límite</label>
-            <input
-              id="assignment-due-date"
-              type="datetime-local"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
+          <fieldset className="form-section">
+            <legend className="form-section__title">Asignación</legend>
+            <div className="form-grid documents-form__row">
+              <div className="form-group">
+                <label htmlFor="assignment-student" className="form-label">
+                  Alumno
+                </label>
+                <select
+                  id="assignment-student"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                >
+                  <option value="">Selecciona alumno (opcional si hay clase)</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="assignment-attachment">Material adjunto (opcional)</label>
-            <input
-              ref={attachmentInputRef}
-              id="assignment-attachment"
-              name="attachment"
-              type="file"
-              onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-            />
-          </div>
+              <div className="form-group">
+                <label htmlFor="assignment-class" className="form-label">
+                  Clase
+                </label>
+                <select
+                  id="assignment-class"
+                  value={classId}
+                  onChange={(e) => handleClassChange(e.target.value)}
+                >
+                  <option value="">Selecciona clase (opcional)</option>
+                  {classes.map((classItem) => (
+                    <option key={classItem.id} value={classItem.id}>
+                      {classItem.title} · {classItem.student_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <fieldset className="form-section">
+            <legend className="form-section__title">Plazo y material</legend>
+            <div className="form-group">
+              <label htmlFor="assignment-due-date" className="form-label">
+                Fecha límite
+              </label>
+              <input
+                id="assignment-due-date"
+                type="datetime-local"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group input-shell">
+              <label htmlFor="assignment-attachment" className="form-label">
+                Material adjunto (opcional)
+              </label>
+              <input
+                ref={attachmentInputRef}
+                id="assignment-attachment"
+                name="attachment"
+                type="file"
+                className="file-input"
+                onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+              />
+            </div>
+          </fieldset>
+
+          <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
             {submitting ? 'Creando...' : 'Crear tarea'}
           </button>
         </form>
       </div>
 
-      <div className="card">
-        <h2>Tareas asignadas</h2>
+      <section className="dashboard-section-card card">
+        <div className="dashboard-section-card__header">
+          <h2 className="workspace-section-title">Tareas asignadas</h2>
+        </div>
 
         {assignments.length === 0 ? (
           <EmptyState
+            icon="📝"
             title="Sin tareas"
             message="Crea tu primera tarea para asignarla a un alumno o clase."
           />
         ) : (
-          <div className="assignments-grid">
+          <div className="assignment-board">
             {assignments.map((assignment) => {
               const submissionFilename = getSubmissionFilename(assignment);
               const attachmentFilename = getAttachmentFilename(assignment);
               const canReview = assignment.status === 'submitted';
               const canCancel = assignment.status !== 'reviewed';
+              const displayStatus = getAssignmentDisplayStatus(assignment);
+              const cardClasses = [
+                'assignment-card',
+                'card',
+                canReview ? 'assignment-card--submitted' : '',
+                displayStatus.key === 'overdue' ? 'assignment-card--overdue' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
 
               return (
-                <article key={assignment.id} className="assignment-card card">
+                <article key={assignment.id} className={cardClasses}>
+                  {canReview ? (
+                    <p className="assignment-card__review-banner">Pendiente de revisar</p>
+                  ) : null}
+
                   <div className="assignment-card__header">
                     <h3>{assignment.title}</h3>
                     <AssignmentStatusBadge assignment={assignment} />
                   </div>
 
-                  {assignment.description && (
+                  {assignment.description ? (
                     <p className="assignment-card__desc">{assignment.description}</p>
-                  )}
+                  ) : null}
 
                   <div className="assignment-meta">
                     <span>Alumno: {getStudentName(assignment)}</span>
@@ -425,12 +463,16 @@ export default function TeacherAssignments() {
                     <span>Fecha límite: {formatDateTimeEs(assignment.due_date)}</span>
                     <span>Creada: {formatDateTimeEs(assignment.created_at)}</span>
                     <span>Entregada: {formatDateTimeEs(assignment.submitted_at)}</span>
-                    {assignment.teacher_feedback && (
-                      <span>Feedback: {assignment.teacher_feedback}</span>
-                    )}
                   </div>
 
-                  {attachmentFilename && (
+                  {assignment.teacher_feedback ? (
+                    <div className="assignment-feedback">
+                      <strong>Feedback enviado</strong>
+                      <p>{assignment.teacher_feedback}</p>
+                    </div>
+                  ) : null}
+
+                  {attachmentFilename ? (
                     <div className="assignment-file-block assignment-material">
                       <strong>Material adjunto</strong>
                       <p className="assignment-file-name">{attachmentFilename}</p>
@@ -445,15 +487,15 @@ export default function TeacherAssignments() {
                           : 'Descargar material'}
                       </button>
                     </div>
-                  )}
+                  ) : null}
 
-                  {(assignment.submission_text || submissionFilename) && (
+                  {(assignment.submission_text || submissionFilename) ? (
                     <div className="assignment-file-block assignment-submission">
                       <strong>Entrega del alumno</strong>
-                      {assignment.submission_text && (
+                      {assignment.submission_text ? (
                         <p className="assignment-file-name">{assignment.submission_text}</p>
-                      )}
-                      {submissionFilename && (
+                      ) : null}
+                      {submissionFilename ? (
                         <p className="assignment-file-name">
                           {submissionFilename}
                           {assignment.submission_file_size || assignment.submissionFileSize
@@ -462,8 +504,8 @@ export default function TeacherAssignments() {
                               )})`
                             : ''}
                         </p>
-                      )}
-                      {submissionFilename && (
+                      ) : null}
+                      {submissionFilename ? (
                         <button
                           type="button"
                           className="btn btn-outline btn-sm"
@@ -474,12 +516,12 @@ export default function TeacherAssignments() {
                             ? 'Descargando...'
                             : 'Descargar entrega'}
                         </button>
-                      )}
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="assignment-card__actions">
-                    {canCancel && (
+                    {canCancel ? (
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -488,7 +530,7 @@ export default function TeacherAssignments() {
                       >
                         {cancellingId === assignment.id ? 'Cancelando...' : 'Cancelar tarea'}
                       </button>
-                    )}
+                    ) : null}
 
                     <button
                       type="button"
@@ -500,7 +542,7 @@ export default function TeacherAssignments() {
                     </button>
                   </div>
 
-                  {canReview && (
+                  {canReview ? (
                     <form
                       className="assignment-review-form"
                       onSubmit={(e) => {
@@ -509,7 +551,9 @@ export default function TeacherAssignments() {
                       }}
                     >
                       <div className="form-group">
-                        <label htmlFor={`review-${assignment.id}`}>Feedback para el alumno</label>
+                        <label htmlFor={`review-${assignment.id}`} className="form-label">
+                          Feedback para el alumno
+                        </label>
                         <textarea
                           id={`review-${assignment.id}`}
                           rows="3"
@@ -525,19 +569,19 @@ export default function TeacherAssignments() {
                       </div>
                       <button
                         type="submit"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary btn-sm btn-block"
                         disabled={reviewingId === assignment.id}
                       >
-                        {reviewingId === assignment.id ? 'Revisando...' : 'Revisar tarea'}
+                        {reviewingId === assignment.id ? 'Revisando...' : 'Revisar entrega'}
                       </button>
                     </form>
-                  )}
+                  ) : null}
                 </article>
               );
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
