@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getClassById, updateClassStatus } from '../services/classService';
+import { getClassDocuments, downloadDocument } from '../services/documentService';
 import { getAuthErrorMessage } from '../services/authService';
 import { JITSI_URL } from '../constants/config';
 import { useAuth } from '../auth/AuthContext';
@@ -20,10 +21,13 @@ function formatDateTime(dateString) {
 export default function Classroom() {
   const { id } = useParams();
   const [classData, setClassData] = useState(null);
+  const [classDocuments, setClassDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState('');
   const [finishing, setFinishing] = useState(false);
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+  const [documentsError, setDocumentsError] = useState('');
 
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -39,9 +43,17 @@ export default function Classroom() {
     async function fetchClass() {
       setLoading(true);
       setError('');
+      setDocumentsError('');
       try {
         const data = await getClassById(id);
         setClassData(data);
+
+        try {
+          const docs = await getClassDocuments(id);
+          setClassDocuments(docs);
+        } catch (docErr) {
+          setDocumentsError(getAuthErrorMessage(docErr));
+        }
       } catch (err) {
         const status = err.response?.status;
         if (status === 401 || status === 403) {
@@ -56,6 +68,21 @@ export default function Classroom() {
     }
     fetchClass();
   }, [id, logoutUser, navigate]);
+
+  async function handleDownloadClassDocument(doc) {
+    setDocumentsError('');
+    setDownloadingDocId(doc.id);
+    try {
+      await downloadDocument(
+        doc.id,
+        doc.original_filename || doc.originalFilename || doc.title
+      );
+    } catch (err) {
+      setDocumentsError(getAuthErrorMessage(err));
+    } finally {
+      setDownloadingDocId(null);
+    }
+  }
 
   const handleLeaveCall = useCallback(() => {
     navigate(classesPath);
@@ -170,8 +197,42 @@ export default function Classroom() {
 
             <aside className="classroom-tools-panel">
               <article className="card">
-                <h2>Documentos</h2>
-                <p className="muted">Materiales de la clase próximamente.</p>
+                <div className="classroom-panel__header">
+                  <h2>Documentos</h2>
+                  <Link
+                    to={isTeacher ? '/teacher/documents' : '/student/documents'}
+                    className="classroom-panel__link"
+                  >
+                    {isTeacher ? 'Gestionar' : 'Ver todos'}
+                  </Link>
+                </div>
+
+                <ErrorMessage message={documentsError} />
+
+                {classDocuments.length === 0 ? (
+                  <p className="muted">No hay documentos para esta clase todavía.</p>
+                ) : (
+                  <ul className="classroom-documents-list">
+                    {classDocuments.map((doc) => (
+                      <li key={doc.id} className="classroom-documents-list__item">
+                        <div>
+                          <strong>{doc.title}</strong>
+                          {doc.description && (
+                            <p className="muted">{doc.description}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleDownloadClassDocument(doc)}
+                          disabled={downloadingDocId === doc.id}
+                        >
+                          {downloadingDocId === doc.id ? '...' : 'Descargar'}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </article>
               <article className="card">
                 <h2>Notas</h2>
