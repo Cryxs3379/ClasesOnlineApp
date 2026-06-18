@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, logoutUser } = useAuth();
@@ -36,6 +37,7 @@ export default function Navbar() {
               <Link to="/teacher/calendar">Calendario</Link>
               <Link to="/teacher/messages">Mensajes</Link>
               <Link to="/teacher/documents">Documentos</Link>
+              <NotificationBell />
               <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                 Cerrar sesión
               </button>
@@ -49,6 +51,7 @@ export default function Navbar() {
               <Link to="/student/calendar">Calendario</Link>
               <Link to="/student/messages">Mensajes</Link>
               <Link to="/student/documents">Documentos</Link>
+              <NotificationBell />
               <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                 Cerrar sesión
               </button>
