@@ -37,6 +37,7 @@ export default function Navbar() {
               <Link to="/teacher/calendar">Calendario</Link>
               <Link to="/teacher/messages">Mensajes</Link>
               <Link to="/teacher/documents">Documentos</Link>
+              <Link to="/teacher/assignments">Tareas</Link>
               <NotificationBell />
               <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                 Cerrar sesión
@@ -51,6 +52,7 @@ export default function Navbar() {
               <Link to="/student/calendar">Calendario</Link>
               <Link to="/student/messages">Mensajes</Link>
               <Link to="/student/documents">Documentos</Link>
+              <Link to="/student/assignments">Tareas</Link>
               <NotificationBell />
               <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                 Cerrar sesión

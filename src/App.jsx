@@ -18,12 +18,14 @@ import TeacherCreateClass from './pages/teacher/TeacherCreateClass';
 import TeacherCalendar from './pages/teacher/TeacherCalendar';
 import TeacherMessages from './pages/teacher/TeacherMessages';
 import TeacherDocuments from './pages/teacher/TeacherDocuments';
+import TeacherAssignments from './pages/teacher/TeacherAssignments';
 
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentClasses from './pages/student/StudentClasses';
 import StudentCalendar from './pages/student/StudentCalendar';
 import StudentMessages from './pages/student/StudentMessages';
 import StudentDocuments from './pages/student/StudentDocuments';
+import StudentAssignments from './pages/student/StudentAssignments';
 
 import Classroom from './pages/Classroom';
 import ClassroomRedirect from './pages/ClassroomRedirect';
@@ -123,6 +125,14 @@ export default function App() {
               }
             />
             <Route
+              path="teacher/assignments"
+              element={
+                <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                  <TeacherAssignments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="teacher/classroom/:id"
               element={
                 <ProtectedRoute allowedRoles={['teacher', 'admin']}>
@@ -168,6 +178,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['student']}>
                   <StudentDocuments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="student/assignments"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentAssignments />
                 </ProtectedRoute>
               }
             />

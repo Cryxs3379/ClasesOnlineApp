@@ -40,6 +40,10 @@ function getNotificationRoute(notification, user) {
     return isTeacher ? '/teacher/classes' : '/student/classes';
   }
 
+  if (entityType === 'assignment') {
+    return isTeacher ? '/teacher/assignments' : '/student/assignments';
+  }
+
   return null;
 }
 

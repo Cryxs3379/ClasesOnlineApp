@@ -1,0 +1,452 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getStudents } from '../../services/studentService';
+import { getMyClasses } from '../../services/classService';
+import {
+  getAssignments,
+  createAssignment,
+  updateAssignment,
+  reviewAssignment,
+  deleteAssignment,
+  downloadSubmissionFile,
+} from '../../services/assignmentService';
+import { getAuthErrorMessage } from '../../services/authService';
+import { useAuth } from '../../auth/AuthContext';
+import { formatFileSize } from '../../utils/documentFormatters';
+import Loading from '../../components/Loading';
+import ErrorMessage from '../../components/ErrorMessage';
+import EmptyState from '../../components/EmptyState';
+
+const STATUS_LABELS = {
+  pending: 'Pendiente',
+  submitted: 'Entregada',
+  reviewed: 'Revisada',
+  cancelled: 'Cancelada',
+};
+
+function formatDateTime(dateString) {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleString('es-ES', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+function AssignmentStatusBadge({ status }) {
+  return (
+    <span className={`assignment-status assignment-status--${status || 'pending'}`}>
+      {STATUS_LABELS[status] || status || '—'}
+    </span>
+  );
+}
+
+function getStudentName(assignment) {
+  return assignment.student_name || assignment.studentName || '—';
+}
+
+function getClassName(assignment) {
+  return assignment.class_title || assignment.class_name || assignment.classTitle || '—';
+}
+
+function getSubmissionFilename(assignment) {
+  return (
+    assignment.submission_original_filename ||
+    assignment.submissionOriginalFilename ||
+    ''
+  );
+}
+
+export default function TeacherAssignments() {
+  const [assignments, setAssignments] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [reviewingId, setReviewingId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [classId, setClassId] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [reviewDrafts, setReviewDrafts] = useState({});
+
+  const { logoutUser } = useAuth();
+  const navigate = useNavigate();
+
+  async function loadAssignments() {
+    const data = await getAssignments();
+    setAssignments(data);
+  }
+
+  useEffect(() => {
+    async function init() {
+      try {
+        setLoading(true);
+        setError('');
+        const [assignmentsData, studentsData, classesData] = await Promise.all([
+          getAssignments(),
+          getStudents(),
+          getMyClasses(),
+        ]);
+        setAssignments(assignmentsData);
+        setStudents(studentsData.filter((s) => s.is_active !== false));
+        setClasses(classesData);
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          logoutUser();
+          navigate('/login');
+          return;
+        }
+        setError(getAuthErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    }
+    init();
+  }, [logoutUser, navigate]);
+
+  function resetForm() {
+    setTitle('');
+    setDescription('');
+    setStudentId('');
+    setClassId('');
+    setDueDate('');
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!title.trim()) {
+      setError('El título es obligatorio.');
+      return;
+    }
+
+    if (!studentId && !classId) {
+      setError('Selecciona un alumno o una clase.');
+      return;
+    }
+
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      due_date: dueDate || undefined,
+    };
+
+    if (studentId) payload.student_id = Number(studentId);
+    if (classId) payload.class_id = Number(classId);
+
+    setSubmitting(true);
+    try {
+      const response = await createAssignment(payload);
+      resetForm();
+      await loadAssignments();
+      setSuccess(response.message || 'Tarea creada correctamente.');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleReview(assignment) {
+    const feedback = (reviewDrafts[assignment.id] || '').trim();
+    if (!feedback) {
+      setError('Escribe un feedback antes de revisar la tarea.');
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    setReviewingId(assignment.id);
+    try {
+      await reviewAssignment(assignment.id, { teacher_feedback: feedback });
+      setReviewDrafts((prev) => {
+        const next = { ...prev };
+        delete next[assignment.id];
+        return next;
+      });
+      await loadAssignments();
+      setSuccess('Tarea revisada correctamente.');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setReviewingId(null);
+    }
+  }
+
+  async function handleCancel(assignment) {
+    const confirmed = window.confirm(`¿Cancelar la tarea "${assignment.title}"?`);
+    if (!confirmed) return;
+
+    setError('');
+    setSuccess('');
+    setCancellingId(assignment.id);
+    try {
+      await updateAssignment(assignment.id, { status: 'cancelled' });
+      await loadAssignments();
+      setSuccess('Tarea cancelada correctamente.');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
+  async function handleDelete(assignment) {
+    const confirmed = window.confirm(`¿Eliminar la tarea "${assignment.title}"?`);
+    if (!confirmed) return;
+
+    setError('');
+    setSuccess('');
+    setDeletingId(assignment.id);
+    try {
+      await deleteAssignment(assignment.id);
+      await loadAssignments();
+      setSuccess('Tarea eliminada correctamente.');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleDownloadSubmission(assignment) {
+    const filename = getSubmissionFilename(assignment);
+    if (!filename) return;
+
+    setError('');
+    setDownloadingId(assignment.id);
+    try {
+      await downloadSubmissionFile(assignment.id, filename);
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  if (loading) return <Loading />;
+
+  return (
+    <div className="assignments-page assignments-grid">
+      <div className="page-header">
+        <div>
+          <span className="eyebrow">Deberes</span>
+          <h1>Tareas</h1>
+          <p>Crea y revisa tareas para tus alumnos.</p>
+        </div>
+      </div>
+
+      <ErrorMessage message={error} />
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="form-card card assignment-form">
+        <h2>Nueva tarea</h2>
+        <form onSubmit={handleCreate} className="form">
+          <div className="form-group">
+            <label htmlFor="assignment-title">Título</label>
+            <input
+              id="assignment-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej: Unit 4 · Writing exercise"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="assignment-description">Descripción</label>
+            <textarea
+              id="assignment-description"
+              rows="3"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Instrucciones para el alumno..."
+            />
+          </div>
+
+          <div className="documents-form__row">
+            <div className="form-group">
+              <label htmlFor="assignment-student">Alumno</label>
+              <select
+                id="assignment-student"
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+              >
+                <option value="">Selecciona alumno (opcional si hay clase)</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="assignment-class">Clase</label>
+              <select
+                id="assignment-class"
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+              >
+                <option value="">Selecciona clase (opcional)</option>
+                {classes.map((classItem) => (
+                  <option key={classItem.id} value={classItem.id}>
+                    {classItem.title} · {classItem.student_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="assignment-due-date">Fecha límite</label>
+            <input
+              id="assignment-due-date"
+              type="datetime-local"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Creando...' : 'Crear tarea'}
+          </button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h2>Tareas asignadas</h2>
+
+        {assignments.length === 0 ? (
+          <EmptyState
+            title="Sin tareas"
+            message="Crea tu primera tarea para asignarla a un alumno o clase."
+          />
+        ) : (
+          <div className="assignments-grid">
+            {assignments.map((assignment) => {
+              const submissionFilename = getSubmissionFilename(assignment);
+              const canReview = assignment.status === 'submitted';
+              const canCancel = assignment.status !== 'reviewed';
+
+              return (
+                <article key={assignment.id} className="assignment-card card">
+                  <div className="assignment-card__header">
+                    <h3>{assignment.title}</h3>
+                    <AssignmentStatusBadge status={assignment.status} />
+                  </div>
+
+                  {assignment.description && (
+                    <p className="assignment-card__desc">{assignment.description}</p>
+                  )}
+
+                  <div className="assignment-meta">
+                    <span>Alumno: {getStudentName(assignment)}</span>
+                    <span>Clase: {getClassName(assignment)}</span>
+                    <span>Fecha límite: {formatDateTime(assignment.due_date)}</span>
+                    <span>Creada: {formatDateTime(assignment.created_at)}</span>
+                    <span>Entregada: {formatDateTime(assignment.submitted_at)}</span>
+                    {assignment.submission_text && (
+                      <span>Texto entrega: {assignment.submission_text}</span>
+                    )}
+                    {submissionFilename && (
+                      <span>
+                        Archivo: {submissionFilename}
+                        {assignment.submission_file_size || assignment.submissionFileSize
+                          ? ` (${formatFileSize(
+                              assignment.submission_file_size || assignment.submissionFileSize
+                            )})`
+                          : ''}
+                      </span>
+                    )}
+                    {assignment.teacher_feedback && (
+                      <span>Feedback: {assignment.teacher_feedback}</span>
+                    )}
+                  </div>
+
+                  <div className="assignment-card__actions">
+                    {submissionFilename && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleDownloadSubmission(assignment)}
+                        disabled={downloadingId === assignment.id}
+                      >
+                        {downloadingId === assignment.id
+                          ? 'Descargando...'
+                          : 'Descargar entrega'}
+                      </button>
+                    )}
+
+                    {canCancel && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleCancel(assignment)}
+                        disabled={cancellingId === assignment.id}
+                      >
+                        {cancellingId === assignment.id ? 'Cancelando...' : 'Cancelar tarea'}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleDelete(assignment)}
+                      disabled={deletingId === assignment.id}
+                    >
+                      {deletingId === assignment.id ? 'Eliminando...' : 'Borrar'}
+                    </button>
+                  </div>
+
+                  {canReview && (
+                    <form
+                      className="assignment-review-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleReview(assignment);
+                      }}
+                    >
+                      <div className="form-group">
+                        <label htmlFor={`review-${assignment.id}`}>Feedback para el alumno</label>
+                        <textarea
+                          id={`review-${assignment.id}`}
+                          rows="3"
+                          value={reviewDrafts[assignment.id] || ''}
+                          onChange={(e) =>
+                            setReviewDrafts((prev) => ({
+                              ...prev,
+                              [assignment.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Comentarios sobre la entrega..."
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="btn btn-primary btn-sm"
+                        disabled={reviewingId === assignment.id}
+                      >
+                        {reviewingId === assignment.id ? 'Revisando...' : 'Revisar tarea'}
+                      </button>
+                    </form>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

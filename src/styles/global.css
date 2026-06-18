@@ -1068,6 +1068,103 @@ img {
   gap: 0.5rem;
 }
 
+/* ===== Assignments ===== */
+.assignments-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.assignments-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.assignment-card {
+  padding: 1.25rem;
+}
+
+.assignment-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.assignment-card__header h3 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.assignment-card__desc {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.assignment-card__notice {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.assignment-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.assignment-form,
+.assignment-submit-form,
+.assignment-review-form {
+  margin-top: 0.5rem;
+}
+
+.assignment-submit-form,
+.assignment-review-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.assignment-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.assignment-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.assignment-status--submitted {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.assignment-status--reviewed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.assignment-status--cancelled {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
 .classroom-panel__header {
   display: flex;
   align-items: center;
