@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { getToken } from '../storage/authStorage';
 import {
   connectSocket,
@@ -25,17 +25,26 @@ function createStrokeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export default function WhiteboardRoom({ classId, canDraw }) {
+export default function WhiteboardRoom({
+  classId,
+  canDraw,
+  variant = 'standard',
+  compactToolbar = false,
+}) {
   const canvasRef = useRef(null);
   const shellRef = useRef(null);
   const strokesRef = useRef([]);
   const drawingRef = useRef(false);
   const lastPointRef = useRef(null);
+  const fieldId = useId();
+
+  const isTransparent = variant === 'transparent';
 
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#111827');
   const [width, setWidth] = useState(4);
   const [status, setStatus] = useState('');
+  const [annotationEnabled, setAnnotationEnabled] = useState(false);
 
   const isValidStroke = useCallback(
     (stroke) => {
@@ -225,8 +234,14 @@ export default function WhiteboardRoom({ classId, canDraw }) {
     };
   }
 
+  function canInteractWithCanvas() {
+    if (!canDraw) return false;
+    if (isTransparent && !annotationEnabled) return false;
+    return true;
+  }
+
   function handlePointerDown(event) {
-    if (!canDraw) return;
+    if (!canInteractWithCanvas()) return;
 
     const point = getRelativePoint(event);
     if (!point) return;
@@ -242,7 +257,7 @@ export default function WhiteboardRoom({ classId, canDraw }) {
   }
 
   function handlePointerMove(event) {
-    if (!canDraw || !drawingRef.current) return;
+    if (!canInteractWithCanvas() || !drawingRef.current) return;
 
     const currentPoint = getRelativePoint(event);
     const lastPoint = lastPointRef.current;
@@ -296,11 +311,52 @@ export default function WhiteboardRoom({ classId, canDraw }) {
     );
   }
 
+  const canvasPassthrough = isTransparent && (!canDraw || !annotationEnabled);
+
+  const roomClasses = [
+    'whiteboard-room',
+    isTransparent ? 'whiteboard-room--transparent' : '',
+    compactToolbar ? 'whiteboard-room--compact' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const shellClasses = [
+    'whiteboard-canvas-shell',
+    isTransparent ? 'whiteboard-canvas-shell--transparent' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const canvasClasses = [
+    'whiteboard-canvas',
+    !canDraw ? 'whiteboard-canvas--readonly' : '',
+    canvasPassthrough ? 'whiteboard-canvas--passthrough' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const readonlyLabel = isTransparent
+    ? 'Viendo las anotaciones del profesor en tiempo real'
+    : 'Viendo la pizarra del profesor en tiempo real';
+
   return (
-    <div className="whiteboard-room">
+    <div className={roomClasses}>
       <div className="whiteboard-toolbar">
         {canDraw ? (
           <>
+            {isTransparent && (
+              <div className="whiteboard-toolbar__group">
+                <button
+                  type="button"
+                  className={`btn btn-sm ${annotationEnabled ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setAnnotationEnabled((prev) => !prev)}
+                >
+                  {annotationEnabled ? 'Desactivar anotación' : 'Activar anotación'}
+                </button>
+              </div>
+            )}
+
             <div className="whiteboard-toolbar__group">
               <button
                 type="button"
@@ -319,26 +375,46 @@ export default function WhiteboardRoom({ classId, canDraw }) {
               </button>
             </div>
 
-            <div className="whiteboard-toolbar__group">
-              <label htmlFor="whiteboard-color">Color</label>
-              <input
-                id="whiteboard-color"
-                type="color"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-                disabled={tool === 'eraser'}
-              />
-            </div>
+            {!compactToolbar && (
+              <div className="whiteboard-toolbar__group">
+                <label htmlFor={`whiteboard-color${fieldId}`}>Color</label>
+                <input
+                  id={`whiteboard-color${fieldId}`}
+                  type="color"
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                  disabled={tool === 'eraser'}
+                />
+              </div>
+            )}
+
+            {compactToolbar && (
+              <div className="whiteboard-toolbar__group">
+                <input
+                  id={`whiteboard-color${fieldId}`}
+                  type="color"
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                  disabled={tool === 'eraser'}
+                  title="Color"
+                  aria-label="Color"
+                />
+              </div>
+            )}
 
             <div className="whiteboard-toolbar__group">
-              <label htmlFor="whiteboard-width">Grosor {width}px</label>
+              {!compactToolbar && (
+                <label htmlFor={`whiteboard-width${fieldId}`}>Grosor {width}px</label>
+              )}
               <input
-                id="whiteboard-width"
+                id={`whiteboard-width${fieldId}`}
                 type="range"
                 min="1"
                 max="24"
                 value={width}
                 onChange={(event) => setWidth(Number(event.target.value))}
+                title={`Grosor ${width}px`}
+                aria-label={`Grosor ${width}px`}
               />
             </div>
 
@@ -347,16 +423,14 @@ export default function WhiteboardRoom({ classId, canDraw }) {
             </button>
           </>
         ) : (
-          <span className="whiteboard-readonly-badge">
-            Viendo la pizarra del profesor en tiempo real
-          </span>
+          <span className="whiteboard-readonly-badge">{readonlyLabel}</span>
         )}
       </div>
 
-      <div ref={shellRef} className="whiteboard-canvas-shell">
+      <div ref={shellRef} className={shellClasses}>
         <canvas
           ref={canvasRef}
-          className={`whiteboard-canvas ${!canDraw ? 'whiteboard-canvas--readonly' : ''}`}
+          className={canvasClasses}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={stopDrawing}

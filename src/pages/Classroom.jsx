@@ -28,7 +28,7 @@ export default function Classroom() {
   const [finishing, setFinishing] = useState(false);
   const [downloadingDocId, setDownloadingDocId] = useState(null);
   const [documentsError, setDocumentsError] = useState('');
-  const [activeClassroomTab, setActiveClassroomTab] = useState('call');
+  const [classroomViewMode, setClassroomViewMode] = useState('call');
 
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -179,28 +179,46 @@ export default function Classroom() {
             </div>
           </div>
 
-          <div className="classroom-stage">
+          <div className="classroom-layout">
             <div className="classroom-workspace card">
-              <div className="classroom-workspace__tabs">
-                <button
-                  type="button"
-                  className={`classroom-workspace__tab ${activeClassroomTab === 'call' ? 'active' : ''}`}
-                  onClick={() => setActiveClassroomTab('call')}
-                >
-                  Videollamada
-                </button>
+              <div className="classroom-workspace__toolbar">
+                <div className="classroom-workspace__tabs">
+                  <button
+                    type="button"
+                    className={`classroom-workspace__tab ${classroomViewMode === 'call' ? 'active' : ''}`}
+                    onClick={() => setClassroomViewMode('call')}
+                  >
+                    Videollamada
+                  </button>
 
-                <button
-                  type="button"
-                  className={`classroom-workspace__tab ${activeClassroomTab === 'whiteboard' ? 'active' : ''}`}
-                  onClick={() => setActiveClassroomTab('whiteboard')}
-                >
-                  Pizarra
-                </button>
+                  <button
+                    type="button"
+                    className={`classroom-workspace__tab ${classroomViewMode === 'whiteboard' ? 'active' : ''}`}
+                    onClick={() => setClassroomViewMode('whiteboard')}
+                  >
+                    Pizarra
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`classroom-workspace__tab ${classroomViewMode === 'split' ? 'active' : ''}`}
+                    onClick={() => setClassroomViewMode('split')}
+                  >
+                    Dividida
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`classroom-workspace__tab ${classroomViewMode === 'annotation' ? 'active' : ''}`}
+                    onClick={() => setClassroomViewMode('annotation')}
+                  >
+                    Anotar pantalla
+                  </button>
+                </div>
               </div>
 
-              <div className="classroom-workspace__content">
-                {activeClassroomTab === 'call' && (
+              <div className={`classroom-stage classroom-stage--${classroomViewMode}`}>
+                <section className="classroom-stage__call">
                   <div className="classroom-video-shell">
                     {classData.jitsi_room_name ? (
                       <BridgeCallRoom
@@ -215,13 +233,27 @@ export default function Classroom() {
                       </div>
                     )}
                   </div>
-                )}
 
-                {activeClassroomTab === 'whiteboard' && (
-                  <WhiteboardRoom
-                    classId={classData.id}
-                    canDraw={isTeacher}
-                  />
+                  {classroomViewMode === 'annotation' && (
+                    <div className="classroom-annotation-layer">
+                      <WhiteboardRoom
+                        classId={classData.id}
+                        canDraw={isTeacher}
+                        variant="transparent"
+                        compactToolbar
+                      />
+                    </div>
+                  )}
+                </section>
+
+                {['whiteboard', 'split'].includes(classroomViewMode) && (
+                  <section className="classroom-stage__whiteboard">
+                    <WhiteboardRoom
+                      classId={classData.id}
+                      canDraw={isTeacher}
+                      variant="standard"
+                    />
+                  </section>
                 )}
               </div>
             </div>
