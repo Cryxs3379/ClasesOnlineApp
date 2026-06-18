@@ -76,7 +76,7 @@ function addMonths(date, amount) {
 
 function isSameDay(a, b) {
   if (!a || !b) return false;
-  return startOfDay(a).getTime() === startOfDay(b).getTime();
+  return toDateKey(a) === toDateKey(b);
 }
 
 function isSameMonth(a, b) {
@@ -84,7 +84,11 @@ function isSameMonth(a, b) {
 }
 
 function toDateKey(date) {
-  return startOfDay(date).toISOString().slice(0, 10);
+  const value = new Date(date);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getMonthLabel(date) {
@@ -134,7 +138,12 @@ function formatSelectedDateHeading(date) {
 
 function isToday(date) {
   if (!date) return false;
-  return startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+  return toDateKey(date) === toDateKey(new Date());
+}
+
+function isBeforeToday(date) {
+  if (!date) return false;
+  return startOfDay(date).getTime() < startOfDay(new Date()).getTime();
 }
 
 function isTomorrow(date) {
@@ -240,17 +249,20 @@ function groupEventsByDayPreservingOrder(events) {
 
   events.forEach((event) => {
     if (!event.start) return;
-    const key = startOfDay(event.start).toISOString();
+
+    const key = toDateKey(event.start);
+
     if (!groups.has(key)) {
-      groups.set(key, []);
+      groups.set(key, {
+        date: startOfDay(event.start),
+        events: [],
+      });
     }
-    groups.get(key).push(event);
+
+    groups.get(key).events.push(event);
   });
 
-  return Array.from(groups.entries()).map(([key, dayEvents]) => ({
-    date: new Date(key),
-    events: dayEvents,
-  }));
+  return Array.from(groups.values());
 }
 
 function getMonthEventLabel(event) {
@@ -448,6 +460,9 @@ function AgendaMonthCalendar({
           const dayClasses = [
             'agenda-month__day',
             !isSameMonth(day, currentMonth) ? 'outside' : '',
+            isBeforeToday(day) && isSameMonth(day, currentMonth) && !isToday(day)
+              ? 'past-day'
+              : '',
             isToday(day) ? 'today' : '',
             selectedDate && isSameDay(day, selectedDate) ? 'selected' : '',
           ]
@@ -719,7 +734,7 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
 
   function renderDayGroups(groups) {
     return groups.map((group) => (
-      <section key={group.date.toISOString()} className="agenda-day-group">
+      <section key={toDateKey(group.date)} className="agenda-day-group">
         <h2 className="agenda-day-heading">{formatDayHeading(group.date)}</h2>
         <div className="agenda-day-events">
           {group.events.map((event) => (
