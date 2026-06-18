@@ -2886,6 +2886,153 @@ textarea {
   gap: 0.75rem;
 }
 
+.classroom-mode-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--color-surface-soft);
+  padding: 6px;
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.classroom-mode-tab {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.classroom-mode-tab:hover:not(.active) {
+  color: var(--color-primary);
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.classroom-mode-tab.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+}
+
+.classroom-mode-description {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.classroom-workspace .classroom-stage {
+  position: relative;
+  min-height: 620px;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.classroom-live-layout {
+  height: 100%;
+  min-height: 620px;
+}
+
+.classroom-video-shell--main,
+.classroom-stage--live .classroom-video-shell--main,
+.classroom-stage--call .classroom-video-shell--main {
+  min-height: 620px;
+  height: 100%;
+}
+
+.classroom-video-shell--main .bridgecall-room {
+  min-height: 620px;
+  height: 100%;
+}
+
+.classroom-whiteboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  min-height: 620px;
+  height: 100%;
+}
+
+.classroom-whiteboard-main {
+  min-height: 620px;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.classroom-whiteboard-main .whiteboard-room {
+  min-height: 620px;
+  height: 100%;
+}
+
+.classroom-mini-call {
+  min-height: 260px;
+  max-height: 360px;
+  background: #020617;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.classroom-video-shell--mini {
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+}
+
+.classroom-video-shell--mini .bridgecall-room {
+  min-height: 0;
+  height: 100%;
+}
+
+.classroom-annotation-layout {
+  position: relative;
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.classroom-annotation-notice {
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  background: var(--color-primary-light, #eef2ff);
+  color: var(--color-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.classroom-video-shell--annotation {
+  position: relative;
+  flex: 1;
+  min-height: 580px;
+  height: 100%;
+}
+
+.classroom-video-shell--annotation .bridgecall-room {
+  min-height: 580px;
+  height: 100%;
+}
+
+.classroom-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .classroom-workspace__tabs {
   display: flex;
   flex-wrap: wrap;
@@ -2914,13 +3061,6 @@ textarea {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-white);
-}
-
-.classroom-workspace .classroom-stage {
-  position: relative;
-  min-height: 680px;
-  display: grid;
-  gap: 1rem;
 }
 
 .classroom-stage__call,
@@ -3008,8 +3148,8 @@ textarea {
 .classroom-annotation-layer {
   position: absolute;
   inset: 0;
-  z-index: 30;
-  pointer-events: none;
+  z-index: 5;
+  pointer-events: auto;
 }
 
 .classroom-annotation-layer .whiteboard-room {
@@ -3177,6 +3317,42 @@ textarea {
 }
 
 @media (max-width: 900px) {
+  .classroom-workspace .classroom-stage {
+    min-height: 460px;
+  }
+
+  .classroom-live-layout,
+  .classroom-whiteboard-layout,
+  .classroom-annotation-layout {
+    min-height: 460px;
+  }
+
+  .classroom-whiteboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .classroom-whiteboard-main {
+    order: 1;
+    min-height: 460px;
+  }
+
+  .classroom-mini-call {
+    order: 2;
+    max-height: 220px;
+    min-height: 200px;
+  }
+
+  .classroom-video-shell--main,
+  .classroom-video-shell--main .bridgecall-room,
+  .classroom-video-shell--annotation,
+  .classroom-video-shell--annotation .bridgecall-room {
+    min-height: 420px;
+  }
+
+  .classroom-mode-tabs {
+    width: 100%;
+  }
+
   .whiteboard-room {
     min-height: 500px;
   }
@@ -3197,29 +3373,12 @@ textarea {
   }
 
   .classroom-workspace .classroom-stage {
-    min-height: 560px;
+    min-height: 460px;
   }
 
-  .classroom-stage--whiteboard .classroom-stage__call {
-    position: relative;
-    width: 100%;
-    height: 220px;
-    right: auto;
-    bottom: auto;
-    order: 2;
-  }
-
-  .classroom-stage--whiteboard {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .classroom-stage--whiteboard .classroom-stage__whiteboard {
-    order: 1;
-  }
-
-  .classroom-workspace__tab {
+  .classroom-mode-tab {
     flex: 1 1 auto;
+    text-align: center;
   }
 
   .whiteboard-toolbar__group {

@@ -869,3 +869,23 @@
     width: 100%;
   }
 }
+
+/* ===== Classroom mode tabs (BridgeClass) ===== */
+.classroom-pro .classroom-mode-tabs {
+  background: var(--amb-gray-100);
+}
+
+.classroom-pro .classroom-mode-tab.active {
+  background: var(--amb-blue);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+
+.classroom-pro .classroom-annotation-notice {
+  background: var(--amb-blue-light);
+  color: var(--amb-blue-dark);
+}
+
+.classroom-pro .classroom-whiteboard-main {
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--amb-shadow);
+}

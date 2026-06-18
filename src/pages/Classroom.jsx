@@ -18,6 +18,26 @@ function formatDateTime(dateString) {
   });
 }
 
+function getClassroomModeTitle(mode) {
+  if (mode === 'live' || mode === 'call') return 'Directo';
+  if (mode === 'whiteboard') return 'Pizarra';
+  if (mode === 'annotation') return 'Anotación';
+  return 'Directo';
+}
+
+function getClassroomModeDescription(mode) {
+  if (mode === 'live' || mode === 'call') {
+    return 'Videollamada principal con materiales de apoyo.';
+  }
+  if (mode === 'whiteboard') {
+    return 'Pizarra interactiva para explicar, corregir y resolver ejercicios.';
+  }
+  if (mode === 'annotation') {
+    return 'Dibuja encima de la pantalla durante la explicación.';
+  }
+  return '';
+}
+
 export default function Classroom() {
   const { id } = useParams();
   const [classData, setClassData] = useState(null);
@@ -28,13 +48,17 @@ export default function Classroom() {
   const [finishing, setFinishing] = useState(false);
   const [downloadingDocId, setDownloadingDocId] = useState(null);
   const [documentsError, setDocumentsError] = useState('');
-  const [classroomViewMode, setClassroomViewMode] = useState('call');
+  const [classroomViewMode, setClassroomViewMode] = useState('live');
 
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
 
   const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
   const classesPath = isTeacher ? '/teacher/classes' : '/student/classes';
+
+  const isLiveMode = classroomViewMode === 'live' || classroomViewMode === 'call';
+  const isWhiteboardMode = classroomViewMode === 'whiteboard';
+  const isAnnotationMode = classroomViewMode === 'annotation';
 
   const roomUrl = classData?.jitsi_room_name
     ? `${JITSI_URL}/${classData.jitsi_room_name}`
@@ -107,6 +131,81 @@ export default function Classroom() {
     } finally {
       setFinishing(false);
     }
+  }
+
+  function renderBridgeCall() {
+    if (!classData?.jitsi_room_name) {
+      return (
+        <div className="bridgecall-overlay">
+          Sala BridgeCall pendiente de asignar
+        </div>
+      );
+    }
+
+    return (
+      <BridgeCallRoom
+        roomName={classData.jitsi_room_name}
+        displayName={user?.name || 'Usuario'}
+        email={user?.email || ''}
+        onLeave={handleLeaveCall}
+      />
+    );
+  }
+
+  function renderStage() {
+    if (isLiveMode) {
+      return (
+        <section className="classroom-live-layout">
+          <div className="classroom-video-shell classroom-video-shell--main">
+            {renderBridgeCall()}
+          </div>
+        </section>
+      );
+    }
+
+    if (isWhiteboardMode) {
+      return (
+        <section className="classroom-whiteboard-layout">
+          <div className="classroom-whiteboard-main">
+            <WhiteboardRoom
+              classId={classData.id}
+              canDraw={isTeacher}
+              variant="standard"
+            />
+          </div>
+          <aside className="classroom-mini-call">
+            <div className="classroom-video-shell classroom-video-shell--mini">
+              {renderBridgeCall()}
+            </div>
+          </aside>
+        </section>
+      );
+    }
+
+    if (isAnnotationMode) {
+      return (
+        <section className="classroom-annotation-layout">
+          <p className="classroom-annotation-notice" role="status">
+            {isTeacher
+              ? 'Modo anotación activo. El profesor puede dibujar sobre la pantalla.'
+              : 'Viendo anotaciones del profesor.'}
+          </p>
+          <div className="classroom-video-shell classroom-video-shell--annotation">
+            {renderBridgeCall()}
+            <div className="classroom-annotation-layer">
+              <WhiteboardRoom
+                classId={classData.id}
+                canDraw={isTeacher}
+                variant="transparent"
+                compactToolbar
+              />
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    return null;
   }
 
   if (loading) return <Loading />;
@@ -182,86 +281,46 @@ export default function Classroom() {
           <div className="classroom-layout">
             <div className="classroom-workspace card">
               <div className="classroom-workspace__toolbar">
-                <div className="classroom-workspace__tabs">
+                <div className="classroom-mode-tabs">
                   <button
                     type="button"
-                    className={`classroom-workspace__tab ${classroomViewMode === 'call' ? 'active' : ''}`}
-                    onClick={() => setClassroomViewMode('call')}
+                    className={`classroom-mode-tab ${isLiveMode ? 'active' : ''}`}
+                    onClick={() => setClassroomViewMode('live')}
                   >
-                    Videollamada
+                    Directo
                   </button>
-
                   <button
                     type="button"
-                    className={`classroom-workspace__tab ${classroomViewMode === 'whiteboard' ? 'active' : ''}`}
+                    className={`classroom-mode-tab ${isWhiteboardMode ? 'active' : ''}`}
                     onClick={() => setClassroomViewMode('whiteboard')}
                   >
                     Pizarra
                   </button>
-
                   <button
                     type="button"
-                    className={`classroom-workspace__tab ${classroomViewMode === 'split' ? 'active' : ''}`}
-                    onClick={() => setClassroomViewMode('split')}
-                  >
-                    Dividida
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`classroom-workspace__tab ${classroomViewMode === 'annotation' ? 'active' : ''}`}
+                    className={`classroom-mode-tab ${isAnnotationMode ? 'active' : ''}`}
                     onClick={() => setClassroomViewMode('annotation')}
                   >
-                    Anotar pantalla
+                    Anotación
                   </button>
                 </div>
+                <p className="classroom-mode-description">
+                  {getClassroomModeDescription(classroomViewMode)}
+                </p>
               </div>
 
-              <div className={`classroom-stage classroom-stage--${classroomViewMode}`}>
-                <section className="classroom-stage__call">
-                  <div className="classroom-video-shell">
-                    {classData.jitsi_room_name ? (
-                      <BridgeCallRoom
-                        roomName={classData.jitsi_room_name}
-                        displayName={user?.name || 'Usuario'}
-                        email={user?.email || ''}
-                        onLeave={handleLeaveCall}
-                      />
-                    ) : (
-                      <div className="bridgecall-overlay">
-                        Sala BridgeCall pendiente de asignar
-                      </div>
-                    )}
-                  </div>
-
-                  {classroomViewMode === 'annotation' && (
-                    <div className="classroom-annotation-layer">
-                      <WhiteboardRoom
-                        classId={classData.id}
-                        canDraw={isTeacher}
-                        variant="transparent"
-                        compactToolbar
-                      />
-                    </div>
-                  )}
-                </section>
-
-                {['whiteboard', 'split'].includes(classroomViewMode) && (
-                  <section className="classroom-stage__whiteboard">
-                    <WhiteboardRoom
-                      classId={classData.id}
-                      canDraw={isTeacher}
-                      variant="standard"
-                    />
-                  </section>
-                )}
+              <div
+                className={`classroom-stage classroom-stage--${classroomViewMode}`}
+                aria-label={getClassroomModeTitle(classroomViewMode)}
+              >
+                {renderStage()}
               </div>
             </div>
 
             <aside className="classroom-tools-panel">
               <article className="card">
                 <div className="classroom-panel__header">
-                  <h2>Documentos</h2>
+                  <h2>Materiales de la clase</h2>
                   <Link
                     to={isTeacher ? '/teacher/documents' : '/student/documents'}
                     className="classroom-panel__link"
@@ -297,13 +356,41 @@ export default function Classroom() {
                   </ul>
                 )}
               </article>
+
               <article className="card">
-                <h2>Notas</h2>
+                <h2>Notas de sesión</h2>
                 <p className="muted">Panel de notas en preparación.</p>
               </article>
+
+              <article className="card">
+                <h2>Accesos rápidos</h2>
+                <div className="classroom-quick-actions">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handleCopyRoomUrl}
+                    disabled={!roomUrl}
+                  >
+                    {copied || 'Copiar enlace de la sala'}
+                  </button>
+                  {roomUrl && (
+                    <a
+                      href={roomUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-outline btn-sm"
+                    >
+                      Abrir videollamada
+                    </a>
+                  )}
+                </div>
+              </article>
+
               <article className="card">
                 <h2>Mensajes</h2>
-                <p className="muted">Chat en tiempo real próximamente.</p>
+                <p className="muted">
+                  Usa la sección de mensajes para continuar la conversación fuera de la clase.
+                </p>
               </article>
             </aside>
           </div>
