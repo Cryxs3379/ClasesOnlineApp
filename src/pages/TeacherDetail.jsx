@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getTeacherById } from '../services/teacherService';
 import { createClass } from '../services/classService';
 import { getAuthErrorMessage } from '../services/authService';
+import { localDateTimeToUtcIso } from '../utils/dateTimeUtils';
 import { useAuth } from '../auth/AuthContext';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
@@ -52,12 +53,20 @@ export default function TeacherDetail() {
       return;
     }
 
+    const startTimeIso = localDateTimeToUtcIso(startTime);
+    const endTimeIso = localDateTimeToUtcIso(endTime);
+
+    if (!startTimeIso || !endTimeIso) {
+      setError('Las fechas no son válidas.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await createClass({
         teacher_id: teacher.user_id,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: startTimeIso,
+        end_time: endTimeIso,
       });
       setSuccess(response.message || 'Clase reservada correctamente.');
     } catch (err) {

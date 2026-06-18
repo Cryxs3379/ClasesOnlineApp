@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getStudents } from '../../services/studentService';
 import { createClass } from '../../services/classService';
 import { getAuthErrorMessage } from '../../services/authService';
+import { localDateTimeToUtcIso } from '../../utils/dateTimeUtils';
 import ErrorMessage from '../../components/ErrorMessage';
 import Loading from '../../components/Loading';
 
@@ -43,14 +44,22 @@ export default function TeacherCreateClass() {
       return;
     }
 
+    const startTimeIso = localDateTimeToUtcIso(startTime);
+    const endTimeIso = localDateTimeToUtcIso(endTime);
+
+    if (!startTimeIso || !endTimeIso) {
+      setError('Las fechas no son válidas.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await createClass({
         student_id: studentId,
         title: title.trim(),
         description: description.trim(),
-        start_time: startTime,
-        end_time: endTime,
+        start_time: startTimeIso,
+        end_time: endTimeIso,
       });
       navigate('/teacher/classes');
     } catch (err) {

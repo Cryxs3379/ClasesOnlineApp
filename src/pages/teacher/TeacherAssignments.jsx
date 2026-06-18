@@ -14,18 +14,11 @@ import {
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
 import { formatFileSize } from '../../utils/documentFormatters';
+import { localDateTimeToUtcIso, formatDateTimeEs } from '../../utils/dateTimeUtils';
 import { getAssignmentDisplayStatus } from '../../utils/assignmentStatus';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
-
-function formatDateTime(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
 
 function AssignmentStatusBadge({ assignment }) {
   const displayStatus = getAssignmentDisplayStatus(assignment);
@@ -168,10 +161,17 @@ export default function TeacherAssignments() {
       return;
     }
 
+    const dueDateIso = dueDate ? localDateTimeToUtcIso(dueDate) : null;
+
+    if (dueDate && !dueDateIso) {
+      setError('La fecha límite no es válida.');
+      return;
+    }
+
     const payload = {
       title: title.trim(),
       description: description.trim() || undefined,
-      due_date: dueDate || undefined,
+      due_date: dueDateIso || undefined,
     };
 
     if (selectedStudentId) {
@@ -422,7 +422,7 @@ export default function TeacherAssignments() {
                   <div className="assignment-meta">
                     <span>Alumno: {getStudentName(assignment)}</span>
                     <span>Clase: {getClassName(assignment)}</span>
-                    <span>Fecha límite: {formatDateTime(assignment.due_date)}</span>
+                    <span>Fecha límite: {formatDateTimeEs(assignment.due_date)}</span>
                     <span>Creada: {formatDateTime(assignment.created_at)}</span>
                     <span>Entregada: {formatDateTime(assignment.submitted_at)}</span>
                     {assignment.teacher_feedback && (
