@@ -9,19 +9,22 @@ import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
 import { getAssignmentDisplayStatus, isAssignmentOverdue } from '../../utils/assignmentStatus';
 import {
-  DashboardQuickLink,
-  DashboardSection,
-  DashboardStatCard,
-  DashboardListItem,
+  DashboardSectionCard,
   InlineEmptyState,
+  QuickActionButton,
+  QuickActions,
+  StatCard,
 } from '../../utils/dashboardComponents';
 import {
   extractFulfilled,
   formatDate,
   formatDateTime,
   getClassName,
+  getConversationDate,
+  getConversationPreview,
   getDocumentDate,
   getLatestItems,
+  getRecentConversations,
   getRecentFeedback,
   getStudentImportantAssignments,
   getTeacherName,
@@ -51,6 +54,7 @@ export default function StudentDashboard() {
   const [classes, setClasses] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [conversations, setConversations] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,15 +92,11 @@ export default function StudentDashboard() {
           conversationsResult,
         ] = results;
 
-        const classesData = safeArray(extractFulfilled(classesResult, []));
-        const assignmentsData = safeArray(extractFulfilled(assignmentsResult, []));
-        const documentsData = safeArray(extractFulfilled(documentsResult, []));
-        const unreadCount = extractFulfilled(unreadNotificationsResult, 0);
-
-        setClasses(classesData);
-        setAssignments(assignmentsData);
-        setDocuments(documentsData);
-        setUnreadNotifications(Number(unreadCount) || 0);
+        setClasses(safeArray(extractFulfilled(classesResult, [])));
+        setAssignments(safeArray(extractFulfilled(assignmentsResult, [])));
+        setDocuments(safeArray(extractFulfilled(documentsResult, [])));
+        setUnreadNotifications(Number(extractFulfilled(unreadNotificationsResult, 0)) || 0);
+        setConversations(safeArray(extractFulfilled(conversationsResult, [])));
 
         if (classesResult.status === 'rejected') {
           setError(getAuthErrorMessage(classesResult.reason));
@@ -165,17 +165,20 @@ export default function StudentDashboard() {
 
   const recentFeedback = useMemo(() => getRecentFeedback(assignments, 3), [assignments]);
 
+  const recentConversations = useMemo(
+    () => getRecentConversations(conversations, 4),
+    [conversations]
+  );
+
   if (loading) return <Loading />;
 
   return (
-    <div className="dashboard-pro">
-      <div className="dashboard-hero card">
+    <div className="dashboard-page dashboard-page--student">
+      <section className="dashboard-hero dashboard-hero--student card">
         <div className="dashboard-hero__content">
-          <span className="eyebrow">Panel de alumno</span>
-          <h1>Hola, {user?.name}</h1>
-          <p>
-            Consulta tus clases, tareas, materiales y mensajes desde un único lugar.
-          </p>
+          <span className="eyebrow">Panel del alumno</span>
+          <h1>Hola, {user?.name || 'Alumno'}</h1>
+          <p>Consulta tus próximas clases, tareas pendientes y materiales.</p>
         </div>
         <div className="dashboard-hero__actions">
           <Link to="/student/calendar" className="btn btn-primary">
@@ -185,78 +188,88 @@ export default function StudentDashboard() {
             Ver tareas
           </Link>
         </div>
-      </div>
+      </section>
 
       <ErrorMessage message={error} />
 
-      {partialWarning && (
+      {partialWarning ? (
         <p className="dashboard-warning-inline" role="status">
           {partialWarning}
         </p>
-      )}
+      ) : null}
 
-      <section className="dashboard-stats-grid">
-        <DashboardStatCard label="Próximas clases" value={upcomingClasses.length} />
-        <DashboardStatCard label="Tareas pendientes" value={pendingAssignments.length} />
-        <DashboardStatCard
-          label="Tareas atrasadas"
-          value={overdueAssignments.length}
-          hint="Requieren atención"
-          variant={overdueAssignments.length > 0 ? 'danger' : undefined}
+      <section className="student-next-class card" aria-label="Tu próxima clase">
+        {nextClass ? (
+          <>
+            <span className="eyebrow">Tu próxima clase</span>
+            <h2>{nextClass.title || '—'}</h2>
+            <div className="student-next-class__meta">
+              <span>Profesor: {getTeacherName(nextClass)}</span>
+              <span>{formatDateTime(nextClass.start_time)}</span>
+              {nextClass.end_time ? <span>Fin: {formatDateTime(nextClass.end_time)}</span> : null}
+            </div>
+            <span className="status-badge">{nextClass.status || 'scheduled'}</span>
+            <div className="student-next-class__actions">
+              {nextClass.id ? (
+                <Link to={`/student/classroom/${nextClass.id}`} className="btn btn-primary">
+                  Entrar a clase
+                </Link>
+              ) : null}
+              <Link to="/student/classes" className="btn btn-outline">
+                Ver mis clases
+              </Link>
+            </div>
+          </>
+        ) : (
+          <InlineEmptyState
+            title="No tienes clases próximas"
+            message="Cuando tu profesor programe una clase, la verás aquí de inmediato."
+            action={
+              <Link to="/student/calendar" className="btn btn-outline btn-block">
+                Ver calendario
+              </Link>
+            }
+          />
+        )}
+      </section>
+
+      <section className="dashboard-stats-grid" aria-label="Resumen">
+        <StatCard icon="🎥" label="Próximas clases" value={upcomingClasses.length} />
+        <StatCard
+          icon="📝"
+          label="Tareas pendientes"
+          value={pendingAssignments.length}
+          variant={pendingAssignments.length > 0 ? 'warning' : undefined}
         />
-        <DashboardStatCard
+        <StatCard
+          icon="✅"
           label="Tareas revisadas"
           value={reviewedAssignments.length}
           variant={reviewedAssignments.length > 0 ? 'success' : undefined}
         />
-        <DashboardStatCard label="Materiales" value={documents.length} />
-        <DashboardStatCard
+        <StatCard icon="📚" label="Materiales recientes" value={documents.length} />
+        <StatCard
+          icon="🔔"
           label="Notificaciones"
           value={unreadNotifications}
           hint={unreadNotifications > 0 ? 'Sin leer' : 'Al día'}
+          variant={unreadNotifications > 0 ? 'info' : undefined}
         />
+        {overdueAssignments.length > 0 ? (
+          <StatCard
+            icon="⚠️"
+            label="Tareas atrasadas"
+            value={overdueAssignments.length}
+            hint="Requieren atención"
+            variant="danger"
+          />
+        ) : null}
       </section>
 
       <div className="dashboard-main-grid">
-        <div className="dashboard-column">
-          <DashboardSection title="Próxima clase">
-            {nextClass ? (
-              <div className="next-class">
-                <h3>{nextClass.title}</h3>
-                <p>{getTeacherName(nextClass)}</p>
-                <p>{formatDateTime(nextClass.start_time)}</p>
-                <p>
-                  Estado:{' '}
-                  <span className="status-badge">{nextClass.status || 'scheduled'}</span>
-                </p>
-                <div className="next-class__actions">
-                  {nextClass.id && (
-                    <Link
-                      to={`/student/classroom/${nextClass.id}`}
-                      className="btn btn-primary btn-sm"
-                    >
-                      Entrar a BridgeCall
-                    </Link>
-                  )}
-                  <Link to="/student/calendar" className="btn btn-outline btn-sm">
-                    Ver calendario
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <InlineEmptyState
-                message="No tienes clases próximas."
-                action={
-                  <Link to="/student/calendar" className="btn btn-outline btn-sm">
-                    Ver calendario
-                  </Link>
-                }
-              />
-            )}
-          </DashboardSection>
-
-          <DashboardSection
-            title="Tus próximas tareas"
+        <div className="dashboard-column dashboard-column--primary">
+          <DashboardSectionCard
+            title="Tareas pendientes importantes"
             action={
               <Link to="/student/assignments" className="btn btn-sm btn-outline">
                 Ver tareas
@@ -266,36 +279,67 @@ export default function StudentDashboard() {
             {importantAssignments.length > 0 ? (
               <ul className="dashboard-list">
                 {importantAssignments.map((assignment) => {
-                  const hasMaterial =
-                    assignment.attachment_original_filename ||
-                    assignment.attachmentOriginalFilename;
-                  const hasFeedback = Boolean(assignment.teacher_feedback);
+                  const overdue = isAssignmentOverdue(assignment);
+                  const canSubmit = assignment.status === 'pending' || overdue;
 
                   return (
-                    <DashboardListItem
-                      key={assignment.id}
-                      title={assignment.title}
-                      meta={`Límite: ${formatDate(assignment.due_date)}`}
-                      badge={<AssignmentStatusBadge assignment={assignment} />}
-                      action={
-                        <div className="dashboard-list-item__tags">
-                          {hasMaterial && <span className="muted">Tiene material</span>}
-                          {hasFeedback && <span className="muted">Feedback disponible</span>}
+                    <li key={assignment.id} className="student-task-item">
+                      <div className="student-task-item__main">
+                        <p className="student-task-item__title">{assignment.title || '—'}</p>
+                        <p className="student-task-item__meta">
+                          Límite: {formatDate(assignment.due_date)}
+                        </p>
+                        <div className="student-task-item__badges">
+                          <AssignmentStatusBadge assignment={assignment} />
+                          {overdue ? <span className="badge badge-danger">Atrasada</span> : null}
                         </div>
-                      }
-                    />
+                      </div>
+                      <Link
+                        to="/student/assignments"
+                        className={`btn btn-sm ${canSubmit ? 'btn-primary' : 'btn-outline'}`}
+                      >
+                        {canSubmit ? 'Entregar' : 'Ver tarea'}
+                      </Link>
+                    </li>
                   );
                 })}
               </ul>
             ) : (
               <InlineEmptyState message="No tienes tareas pendientes por ahora." />
             )}
-          </DashboardSection>
+          </DashboardSectionCard>
+
+          <DashboardSectionCard
+            title="Feedback reciente del profesor"
+            action={
+              <Link to="/student/assignments" className="btn btn-sm btn-outline">
+                Ver tareas
+              </Link>
+            }
+          >
+            {recentFeedback.length > 0 ? (
+              <ul className="dashboard-list dashboard-list--feedback">
+                {recentFeedback.map((assignment) => (
+                  <li key={assignment.id} className="dashboard-feedback-card">
+                    <p className="dashboard-feedback-card__title">{assignment.title || '—'}</p>
+                    <p className="dashboard-feedback-card__comment">
+                      {truncateText(assignment.teacher_feedback)}
+                    </p>
+                    <span className="dashboard-feedback-card__date muted">
+                      {formatDate(assignment.reviewed_at || assignment.updated_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <InlineEmptyState message="Cuando tu profesor revise tareas, verás aquí sus comentarios." />
+            )}
+          </DashboardSectionCard>
         </div>
 
-        <div className="dashboard-column">
-          <DashboardSection
-            title="Últimos materiales"
+        <div className="dashboard-column dashboard-column--secondary">
+          <DashboardSectionCard
+            title="Materiales recientes"
             action={
               <Link to="/student/documents" className="btn btn-sm btn-outline">
                 Ver documentos
@@ -305,55 +349,84 @@ export default function StudentDashboard() {
             {recentDocuments.length > 0 ? (
               <ul className="dashboard-list">
                 {recentDocuments.map((doc) => (
-                  <DashboardListItem
-                    key={doc.id}
-                    title={doc.title}
-                    meta={`${getTeacherName(doc)} · ${getClassName(doc)} · ${formatDate(getDocumentDate(doc))}`}
-                  />
+                  <li key={doc.id} className="dashboard-list-item">
+                    <div className="dashboard-list-item__main">
+                      <p className="dashboard-list-item__title">{doc.title || '—'}</p>
+                      <p className="dashboard-list-item__meta">
+                        {getTeacherName(doc)} · {getClassName(doc)} ·{' '}
+                        {formatDate(getDocumentDate(doc))}
+                      </p>
+                    </div>
+                  </li>
                 ))}
               </ul>
             ) : (
               <InlineEmptyState message="Todavía no tienes materiales compartidos." />
             )}
-          </DashboardSection>
+          </DashboardSectionCard>
 
-          <DashboardSection
-            title="Feedback reciente"
+          <DashboardSectionCard
+            title="Últimos mensajes"
             action={
-              <Link to="/student/assignments" className="btn btn-sm btn-outline">
-                Ver tareas
-              </Link>
+              unreadNotifications > 0 ? (
+                <span className="badge badge-danger">{unreadNotifications}</span>
+              ) : null
             }
           >
-            {recentFeedback.length > 0 ? (
+            {recentConversations.length > 0 ? (
               <ul className="dashboard-list">
-                {recentFeedback.map((assignment) => (
-                  <DashboardListItem
-                    key={assignment.id}
-                    title={assignment.title}
-                    meta={truncateText(assignment.teacher_feedback)}
-                    action={
-                      <span className="muted">
-                        {formatDate(assignment.reviewed_at || assignment.updated_at)}
-                      </span>
-                    }
-                  />
-                ))}
+                {recentConversations.map((conversation) => {
+                  const unread = Number(conversation.unread_count || 0);
+                  return (
+                    <li key={conversation.conversation_id || conversation.id} className="dashboard-list-item">
+                      <div className="dashboard-list-item__main">
+                        <p className="dashboard-list-item__title">{getTeacherName(conversation)}</p>
+                        <p className="dashboard-list-item__meta">
+                          {getConversationPreview(conversation)}
+                        </p>
+                      </div>
+                      {unread > 0 ? (
+                        <span className="messages-unread-badge">{unread}</span>
+                      ) : (
+                        <span className="muted dashboard-list-item__time">
+                          {formatDateTime(getConversationDate(conversation))}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
+            ) : unreadNotifications > 0 ? (
+              <div className="dashboard-notifications-summary">
+                <p>
+                  Tienes <strong>{unreadNotifications}</strong> notificación
+                  {unreadNotifications === 1 ? '' : 'es'} sin leer.
+                </p>
+                <Link to="/student/messages" className="btn btn-sm btn-outline btn-block">
+                  Ir a mensajes
+                </Link>
+              </div>
             ) : (
-              <InlineEmptyState message="Cuando tu profesor revise tareas, verás aquí sus comentarios." />
+              <InlineEmptyState
+                message="No hay mensajes recientes."
+                action={
+                  <Link to="/student/messages" className="btn btn-sm btn-outline">
+                    Abrir mensajes
+                  </Link>
+                }
+              />
             )}
-          </DashboardSection>
+          </DashboardSectionCard>
 
-          <DashboardSection title="Accesos rápidos">
-            <div className="dashboard-quick-grid">
-              <DashboardQuickLink to="/student/classes" label="Mis clases" />
-              <DashboardQuickLink to="/student/calendar" label="Calendario" />
-              <DashboardQuickLink to="/student/assignments" label="Tareas" />
-              <DashboardQuickLink to="/student/documents" label="Documentos" />
-              <DashboardQuickLink to="/student/messages" label="Mensajes" />
-            </div>
-          </DashboardSection>
+          <DashboardSectionCard title="Accesos rápidos">
+            <QuickActions>
+              <QuickActionButton to="/student/classes" label="Mis clases" icon="🎥" />
+              <QuickActionButton to="/student/calendar" label="Calendario" icon="📅" />
+              <QuickActionButton to="/student/assignments" label="Tareas" icon="📝" />
+              <QuickActionButton to="/student/documents" label="Materiales" icon="📚" />
+              <QuickActionButton to="/student/messages" label="Mensajes" icon="💬" />
+            </QuickActions>
+          </DashboardSectionCard>
         </div>
       </div>
     </div>
