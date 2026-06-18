@@ -1165,6 +1165,35 @@ img {
   color: #4b5563;
 }
 
+.assignment-file-block {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+}
+
+.assignment-file-block strong {
+  display: block;
+  font-size: 0.82rem;
+  margin-bottom: 0.35rem;
+}
+
+.assignment-file-name {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.65rem;
+  word-break: break-word;
+}
+
+.assignment-material {
+  background: var(--color-primary-light);
+}
+
+.assignment-submission {
+  background: #f8fafc;
+}
+
 .classroom-panel__header {
   display: flex;
   align-items: center;

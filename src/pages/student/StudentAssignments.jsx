@@ -4,6 +4,7 @@ import {
   getAssignments,
   submitAssignment,
   downloadSubmissionFile,
+  downloadAttachmentFile,
 } from '../../services/assignmentService';
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
@@ -51,6 +52,14 @@ function getSubmissionFilename(assignment) {
   );
 }
 
+function getAttachmentFilename(assignment) {
+  return (
+    assignment.attachment_original_filename ||
+    assignment.attachmentOriginalFilename ||
+    ''
+  );
+}
+
 function canSubmit(status) {
   return status === 'pending' || status === 'submitted';
 }
@@ -59,7 +68,8 @@ export default function StudentAssignments() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingSubmissionId, setDownloadingSubmissionId] = useState(null);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitTexts, setSubmitTexts] = useState({});
@@ -138,16 +148,31 @@ export default function StudentAssignments() {
 
   async function handleDownloadSubmission(assignment) {
     const filename = getSubmissionFilename(assignment);
-    if (!filename) return;
+    if (!assignment?.id || !filename) return;
 
     setError('');
-    setDownloadingId(assignment.id);
+    setDownloadingSubmissionId(assignment.id);
     try {
       await downloadSubmissionFile(assignment.id, filename);
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
-      setDownloadingId(null);
+      setDownloadingSubmissionId(null);
+    }
+  }
+
+  async function handleDownloadAttachment(assignment) {
+    const filename = getAttachmentFilename(assignment);
+    if (!assignment?.id || !filename) return;
+
+    setError('');
+    setDownloadingAttachmentId(assignment.id);
+    try {
+      await downloadAttachmentFile(assignment.id, filename);
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setDownloadingAttachmentId(null);
     }
   }
 
@@ -178,6 +203,7 @@ export default function StudentAssignments() {
           <div className="assignments-grid">
             {assignments.map((assignment) => {
               const submissionFilename = getSubmissionFilename(assignment);
+              const attachmentFilename = getAttachmentFilename(assignment);
               const showSubmitForm = canSubmit(assignment.status);
 
               return (
@@ -200,30 +226,53 @@ export default function StudentAssignments() {
                     {assignment.teacher_feedback && (
                       <span>Feedback: {assignment.teacher_feedback}</span>
                     )}
-                    {submissionFilename && (
-                      <span>
-                        Archivo entregado: {submissionFilename}
-                        {assignment.submission_file_size || assignment.submissionFileSize
-                          ? ` (${formatFileSize(
-                              assignment.submission_file_size || assignment.submissionFileSize
-                            )})`
-                          : ''}
-                      </span>
-                    )}
                   </div>
 
-                  {submissionFilename && (
-                    <div className="assignment-card__actions">
+                  {attachmentFilename && (
+                    <div className="assignment-file-block assignment-material">
+                      <strong>Material de la tarea</strong>
+                      <p className="assignment-file-name">{attachmentFilename}</p>
                       <button
                         type="button"
                         className="btn btn-outline btn-sm"
-                        onClick={() => handleDownloadSubmission(assignment)}
-                        disabled={downloadingId === assignment.id}
+                        onClick={() => handleDownloadAttachment(assignment)}
+                        disabled={downloadingAttachmentId === assignment.id}
                       >
-                        {downloadingId === assignment.id
+                        {downloadingAttachmentId === assignment.id
                           ? 'Descargando...'
-                          : 'Descargar entrega'}
+                          : 'Descargar material'}
                       </button>
+                    </div>
+                  )}
+
+                  {(assignment.submission_text || submissionFilename) && (
+                    <div className="assignment-file-block assignment-submission">
+                      <strong>Entrega del alumno</strong>
+                      {assignment.submission_text && (
+                        <p className="assignment-file-name">{assignment.submission_text}</p>
+                      )}
+                      {submissionFilename && (
+                        <p className="assignment-file-name">
+                          {submissionFilename}
+                          {assignment.submission_file_size || assignment.submissionFileSize
+                            ? ` (${formatFileSize(
+                                assignment.submission_file_size || assignment.submissionFileSize
+                              )})`
+                            : ''}
+                        </p>
+                      )}
+                      {submissionFilename && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleDownloadSubmission(assignment)}
+                          disabled={downloadingSubmissionId === assignment.id}
+                        >
+                          {downloadingSubmissionId === assignment.id
+                            ? 'Descargando...'
+                            : 'Descargar entrega'}
+                        </button>
+                      )}
                     </div>
                   )}
 

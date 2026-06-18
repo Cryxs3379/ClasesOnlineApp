@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getStudents } from '../../services/studentService';
 import { getMyClasses } from '../../services/classService';
@@ -9,6 +9,7 @@ import {
   reviewAssignment,
   deleteAssignment,
   downloadSubmissionFile,
+  downloadAttachmentFile,
 } from '../../services/assignmentService';
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
@@ -56,6 +57,14 @@ function getSubmissionFilename(assignment) {
   );
 }
 
+function getAttachmentFilename(assignment) {
+  return (
+    assignment.attachment_original_filename ||
+    assignment.attachmentOriginalFilename ||
+    ''
+  );
+}
+
 export default function TeacherAssignments() {
   const [assignments, setAssignments] = useState([]);
   const [students, setStudents] = useState([]);
@@ -65,7 +74,8 @@ export default function TeacherAssignments() {
   const [reviewingId, setReviewingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingSubmissionId, setDownloadingSubmissionId] = useState(null);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -74,7 +84,9 @@ export default function TeacherAssignments() {
   const [studentId, setStudentId] = useState('');
   const [classId, setClassId] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [attachment, setAttachment] = useState(null);
   const [reviewDrafts, setReviewDrafts] = useState({});
+  const attachmentInputRef = useRef(null);
 
   const { logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -118,6 +130,10 @@ export default function TeacherAssignments() {
     setStudentId('');
     setClassId('');
     setDueDate('');
+    setAttachment(null);
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = '';
+    }
   }
 
   function handleClassChange(value) {
@@ -165,7 +181,9 @@ export default function TeacherAssignments() {
       payload.class_id = selectedClassId;
     }
 
-    console.log('Payload crear tarea:', payload);
+    if (attachment) {
+      payload.attachment = attachment;
+    }
 
     setSubmitting(true);
     try {
@@ -244,16 +262,31 @@ export default function TeacherAssignments() {
 
   async function handleDownloadSubmission(assignment) {
     const filename = getSubmissionFilename(assignment);
-    if (!filename) return;
+    if (!assignment?.id || !filename) return;
 
     setError('');
-    setDownloadingId(assignment.id);
+    setDownloadingSubmissionId(assignment.id);
     try {
       await downloadSubmissionFile(assignment.id, filename);
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
-      setDownloadingId(null);
+      setDownloadingSubmissionId(null);
+    }
+  }
+
+  async function handleDownloadAttachment(assignment) {
+    const filename = getAttachmentFilename(assignment);
+    if (!assignment?.id || !filename) return;
+
+    setError('');
+    setDownloadingAttachmentId(assignment.id);
+    try {
+      await downloadAttachmentFile(assignment.id, filename);
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setDownloadingAttachmentId(null);
     }
   }
 
@@ -341,6 +374,17 @@ export default function TeacherAssignments() {
             />
           </div>
 
+          <div className="form-group">
+            <label htmlFor="assignment-attachment">Material adjunto (opcional)</label>
+            <input
+              ref={attachmentInputRef}
+              id="assignment-attachment"
+              name="attachment"
+              type="file"
+              onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+            />
+          </div>
+
           <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? 'Creando...' : 'Crear tarea'}
           </button>
@@ -359,6 +403,7 @@ export default function TeacherAssignments() {
           <div className="assignments-grid">
             {assignments.map((assignment) => {
               const submissionFilename = getSubmissionFilename(assignment);
+              const attachmentFilename = getAttachmentFilename(assignment);
               const canReview = assignment.status === 'submitted';
               const canCancel = assignment.status !== 'reviewed';
 
@@ -379,38 +424,60 @@ export default function TeacherAssignments() {
                     <span>Fecha límite: {formatDateTime(assignment.due_date)}</span>
                     <span>Creada: {formatDateTime(assignment.created_at)}</span>
                     <span>Entregada: {formatDateTime(assignment.submitted_at)}</span>
-                    {assignment.submission_text && (
-                      <span>Texto entrega: {assignment.submission_text}</span>
-                    )}
-                    {submissionFilename && (
-                      <span>
-                        Archivo: {submissionFilename}
-                        {assignment.submission_file_size || assignment.submissionFileSize
-                          ? ` (${formatFileSize(
-                              assignment.submission_file_size || assignment.submissionFileSize
-                            )})`
-                          : ''}
-                      </span>
-                    )}
                     {assignment.teacher_feedback && (
                       <span>Feedback: {assignment.teacher_feedback}</span>
                     )}
                   </div>
 
-                  <div className="assignment-card__actions">
-                    {submissionFilename && (
+                  {attachmentFilename && (
+                    <div className="assignment-file-block assignment-material">
+                      <strong>Material adjunto</strong>
+                      <p className="assignment-file-name">{attachmentFilename}</p>
                       <button
                         type="button"
                         className="btn btn-outline btn-sm"
-                        onClick={() => handleDownloadSubmission(assignment)}
-                        disabled={downloadingId === assignment.id}
+                        onClick={() => handleDownloadAttachment(assignment)}
+                        disabled={downloadingAttachmentId === assignment.id}
                       >
-                        {downloadingId === assignment.id
+                        {downloadingAttachmentId === assignment.id
                           ? 'Descargando...'
-                          : 'Descargar entrega'}
+                          : 'Descargar material'}
                       </button>
-                    )}
+                    </div>
+                  )}
 
+                  {(assignment.submission_text || submissionFilename) && (
+                    <div className="assignment-file-block assignment-submission">
+                      <strong>Entrega del alumno</strong>
+                      {assignment.submission_text && (
+                        <p className="assignment-file-name">{assignment.submission_text}</p>
+                      )}
+                      {submissionFilename && (
+                        <p className="assignment-file-name">
+                          {submissionFilename}
+                          {assignment.submission_file_size || assignment.submissionFileSize
+                            ? ` (${formatFileSize(
+                                assignment.submission_file_size || assignment.submissionFileSize
+                              )})`
+                            : ''}
+                        </p>
+                      )}
+                      {submissionFilename && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleDownloadSubmission(assignment)}
+                          disabled={downloadingSubmissionId === assignment.id}
+                        >
+                          {downloadingSubmissionId === assignment.id
+                            ? 'Descargando...'
+                            : 'Descargar entrega'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="assignment-card__actions">
                     {canCancel && (
                       <button
                         type="button"
