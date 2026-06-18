@@ -19,6 +19,8 @@ const FILTERS = [
   { id: 'week', label: 'Esta semana' },
 ];
 
+const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
 const ASSIGNMENT_STATUS_LABELS = {
   pending: 'Pendiente',
   submitted: 'Entregada',
@@ -36,6 +38,101 @@ function startOfDay(date) {
   const value = new Date(date);
   value.setHours(0, 0, 0, 0);
   return value;
+}
+
+function startOfMonth(date) {
+  const value = new Date(date.getFullYear(), date.getMonth(), 1);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function endOfMonth(date) {
+  const value = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  value.setHours(23, 59, 59, 999);
+  return value;
+}
+
+function startOfCalendarGrid(date) {
+  const monthStart = startOfMonth(date);
+  const offset = (monthStart.getDay() + 6) % 7;
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - offset);
+  gridStart.setHours(0, 0, 0, 0);
+  return gridStart;
+}
+
+function endOfCalendarGrid(date) {
+  const monthEnd = endOfMonth(date);
+  const offset = 6 - ((monthEnd.getDay() + 6) % 7);
+  const gridEnd = new Date(monthEnd);
+  gridEnd.setDate(monthEnd.getDate() + offset);
+  gridEnd.setHours(23, 59, 59, 999);
+  return gridEnd;
+}
+
+function addMonths(date, amount) {
+  const value = new Date(date);
+  value.setDate(1);
+  value.setMonth(value.getMonth() + amount);
+  return value;
+}
+
+function isSameDay(a, b) {
+  if (!a || !b) return false;
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+function isSameMonth(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+function toDateKey(date) {
+  return startOfDay(date).toISOString().slice(0, 10);
+}
+
+function getMonthLabel(date) {
+  const formatted = new Date(date).toLocaleDateString('es-ES', {
+    month: 'long',
+    year: 'numeric',
+  });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1).replace(' de ', ' ');
+}
+
+function buildMonthDays(currentMonth) {
+  const days = [];
+  const start = startOfCalendarGrid(currentMonth);
+  const end = endOfCalendarGrid(currentMonth);
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return days;
+}
+
+function buildEventsByDateKey(events) {
+  const map = new Map();
+
+  events.forEach((event) => {
+    if (!event.start) return;
+    const key = toDateKey(event.start);
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key).push(event);
+  });
+
+  map.forEach((dayEvents, key) => {
+    map.set(key, sortEventsByDate(dayEvents));
+  });
+
+  return map;
+}
+
+function formatSelectedDateHeading(date) {
+  return `Eventos del ${formatDayLabel(date)}`;
 }
 
 function isToday(date) {
@@ -232,6 +329,84 @@ function getClassroomRoute(mode, classId) {
   return mode === 'teacher' ? `/teacher/classroom/${classId}` : `/student/classroom/${classId}`;
 }
 
+function AgendaMonthCalendar({
+  currentMonth,
+  selectedDate,
+  eventsByDateKey,
+  onPrevMonth,
+  onNextMonth,
+  onGoToday,
+  onSelectDate,
+}) {
+  const monthDays = buildMonthDays(currentMonth);
+
+  return (
+    <section className="agenda-month card">
+      <div className="agenda-month__header">
+        <h2>{getMonthLabel(currentMonth)}</h2>
+        <div className="agenda-month__nav">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onPrevMonth}>
+            ‹
+          </button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onGoToday}>
+            Hoy
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onNextMonth}>
+            ›
+          </button>
+        </div>
+      </div>
+
+      <div className="agenda-month__grid">
+        {WEEKDAYS.map((weekday) => (
+          <div key={weekday} className="agenda-month__weekday">
+            {weekday}
+          </div>
+        ))}
+
+        {monthDays.map((day) => {
+          const dayKey = toDateKey(day);
+          const dayEvents = eventsByDateKey.get(dayKey) || [];
+          const visibleEvents = dayEvents.slice(0, 3);
+          const hiddenCount = Math.max(0, dayEvents.length - visibleEvents.length);
+          const dayClasses = [
+            'agenda-month__day',
+            !isSameMonth(day, currentMonth) ? 'outside' : '',
+            isToday(day) ? 'today' : '',
+            selectedDate && isSameDay(day, selectedDate) ? 'selected' : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+
+          return (
+            <button
+              key={dayKey}
+              type="button"
+              className={dayClasses}
+              onClick={() => onSelectDate(day)}
+            >
+              <span className="agenda-month__day-number">{day.getDate()}</span>
+              <div className="agenda-month__events">
+                {visibleEvents.map((event) => (
+                  <span
+                    key={`${event.type}-${event.id}`}
+                    className={`agenda-month__event agenda-month__event--${event.type}`}
+                  >
+                    {event.type === 'class' ? '🎥 Clase' : '📝 Tarea'}
+                  </span>
+                ))}
+                {hiddenCount > 0 && (
+                  <span className="agenda-month__more">+{hiddenCount} más</span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function AgendaEventCard({ event, mode }) {
   const navigate = useNavigate();
   const contactLabel = getContactLabel(event, mode);
@@ -332,6 +507,8 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const { logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -400,12 +577,51 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
     [datedEvents, activeFilter]
   );
 
-  const groupedDays = useMemo(
-    () => groupEventsByDay(filteredEvents),
+  const eventsByDateKey = useMemo(
+    () => buildEventsByDateKey(filteredEvents),
     [filteredEvents]
   );
 
-  const hasVisibleEvents = groupedDays.length > 0 || undatedAssignments.length > 0;
+  const eventsForAgenda = useMemo(() => {
+    if (!selectedDate) return filteredEvents;
+    return filteredEvents.filter(
+      (event) => event.start && isSameDay(event.start, selectedDate)
+    );
+  }, [filteredEvents, selectedDate]);
+
+  const groupedDays = useMemo(
+    () => groupEventsByDay(eventsForAgenda),
+    [eventsForAgenda]
+  );
+
+  const showUndated =
+    matchesUndatedFilter(activeFilter) && undatedAssignments.length > 0 && !selectedDate;
+
+  const hasVisibleEvents = groupedDays.length > 0 || showUndated;
+
+  function handleFilterChange(filterId) {
+    setActiveFilter(filterId);
+    if (filterId === 'all') {
+      setSelectedDate(null);
+    }
+  }
+
+  function handleSelectDate(day) {
+    setSelectedDate(startOfDay(day));
+    if (!isSameMonth(day, currentMonth)) {
+      setCurrentMonth(new Date(day.getFullYear(), day.getMonth(), 1));
+    }
+  }
+
+  function handleGoToday() {
+    const today = new Date();
+    setCurrentMonth(today);
+    setSelectedDate(startOfDay(today));
+  }
+
+  function handleClearSelection() {
+    setSelectedDate(null);
+  }
 
   if (loading) return <Loading />;
 
@@ -455,12 +671,31 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
             key={filter.id}
             type="button"
             className={`agenda-filter-button ${activeFilter === filter.id ? 'active' : ''}`}
-            onClick={() => setActiveFilter(filter.id)}
+            onClick={() => handleFilterChange(filter.id)}
           >
             {filter.label}
           </button>
         ))}
       </div>
+
+      <AgendaMonthCalendar
+        currentMonth={currentMonth}
+        selectedDate={selectedDate}
+        eventsByDateKey={eventsByDateKey}
+        onPrevMonth={() => setCurrentMonth((prev) => addMonths(prev, -1))}
+        onNextMonth={() => setCurrentMonth((prev) => addMonths(prev, 1))}
+        onGoToday={handleGoToday}
+        onSelectDate={handleSelectDate}
+      />
+
+      {selectedDate && (
+        <div className="agenda-selected-day">
+          <h2>{formatSelectedDateHeading(selectedDate)}</h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleClearSelection}>
+            Quitar selección
+          </button>
+        </div>
+      )}
 
       {!hasVisibleEvents ? (
         <EmptyState
@@ -484,7 +719,7 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
             </section>
           ))}
 
-          {matchesUndatedFilter(activeFilter) && undatedAssignments.length > 0 && (
+          {showUndated && (
             <section className="agenda-day-group">
               <h2 className="agenda-day-heading">Sin fecha límite</h2>
               <div className="agenda-day-events">
