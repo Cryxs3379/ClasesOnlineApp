@@ -6,7 +6,7 @@ import { getAuthErrorMessage } from '../services/authService';
 import { JITSI_URL } from '../constants/config';
 import { useAuth } from '../auth/AuthContext';
 import BridgeCallRoom from '../components/BridgeCallRoom';
-import WhiteboardOverlayPlaceholder from '../components/WhiteboardOverlayPlaceholder';
+import WhiteboardRoom from '../components/WhiteboardRoom';
 import Loading from '../components/Loading';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -28,6 +28,7 @@ export default function Classroom() {
   const [finishing, setFinishing] = useState(false);
   const [downloadingDocId, setDownloadingDocId] = useState(null);
   const [documentsError, setDocumentsError] = useState('');
+  const [activeClassroomTab, setActiveClassroomTab] = useState('call');
 
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
@@ -179,20 +180,50 @@ export default function Classroom() {
           </div>
 
           <div className="classroom-stage">
-            <div className="classroom-video-shell">
-              {classData.jitsi_room_name ? (
-                <BridgeCallRoom
-                  roomName={classData.jitsi_room_name}
-                  displayName={user?.name || 'Usuario'}
-                  email={user?.email || ''}
-                  onLeave={handleLeaveCall}
-                />
-              ) : (
-                <div className="bridgecall-overlay">
-                  Sala BridgeCall pendiente de asignar
-                </div>
-              )}
-              <WhiteboardOverlayPlaceholder canDraw={isTeacher} />
+            <div className="classroom-workspace card">
+              <div className="classroom-workspace__tabs">
+                <button
+                  type="button"
+                  className={`classroom-workspace__tab ${activeClassroomTab === 'call' ? 'active' : ''}`}
+                  onClick={() => setActiveClassroomTab('call')}
+                >
+                  Videollamada
+                </button>
+
+                <button
+                  type="button"
+                  className={`classroom-workspace__tab ${activeClassroomTab === 'whiteboard' ? 'active' : ''}`}
+                  onClick={() => setActiveClassroomTab('whiteboard')}
+                >
+                  Pizarra
+                </button>
+              </div>
+
+              <div className="classroom-workspace__content">
+                {activeClassroomTab === 'call' && (
+                  <div className="classroom-video-shell">
+                    {classData.jitsi_room_name ? (
+                      <BridgeCallRoom
+                        roomName={classData.jitsi_room_name}
+                        displayName={user?.name || 'Usuario'}
+                        email={user?.email || ''}
+                        onLeave={handleLeaveCall}
+                      />
+                    ) : (
+                      <div className="bridgecall-overlay">
+                        Sala BridgeCall pendiente de asignar
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeClassroomTab === 'whiteboard' && (
+                  <WhiteboardRoom
+                    classId={classData.id}
+                    canDraw={isTeacher}
+                  />
+                )}
+              </div>
             </div>
 
             <aside className="classroom-tools-panel">

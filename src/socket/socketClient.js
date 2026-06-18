@@ -77,3 +77,30 @@ export function markSocketConversationAsRead(conversationId) {
   if (!socket?.connected || !conversationId) return;
   socket.emit('conversation:read', { conversationId });
 }
+
+export function joinWhiteboard(classId) {
+  if (!socket?.connected || !classId) return;
+  socket.emit('whiteboard:join', { classId });
+}
+
+export function leaveWhiteboard(classId) {
+  if (!socket?.connected || !classId) return;
+  socket.emit('whiteboard:leave', { classId });
+}
+
+export function requestWhiteboardState(classId) {
+  if (!socket?.connected || !classId) return;
+  socket.emit('whiteboard:state:request', { classId });
+}
+
+export function sendWhiteboardDraw(payload) {
+  if (!socket?.connected || !payload?.classId) return false;
+  socket.emit('whiteboard:draw', payload);
+  return true;
+}
+
+export function sendWhiteboardClear(classId) {
+  if (!socket?.connected || !classId) return false;
+  socket.emit('whiteboard:clear', { classId });
+  return true;
+}
