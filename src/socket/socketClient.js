@@ -10,7 +10,7 @@ export function connectSocket(token) {
     return null;
   }
 
-  if (socket && currentToken === token && socket.connected) {
+  if (socket && currentToken === token) {
     return socket;
   }
 
@@ -49,27 +49,27 @@ export function getSocket() {
 }
 
 export function joinConversation(conversationId) {
-  if (socket?.connected) {
-    socket.emit('conversation:join', { conversationId });
-  }
+  if (!socket?.connected || !conversationId) return;
+  socket.emit('conversation:join', { conversationId });
 }
 
 export function leaveConversation(conversationId) {
-  if (socket?.connected) {
-    socket.emit('conversation:leave', { conversationId });
-  }
+  if (!socket?.connected || !conversationId) return;
+  socket.emit('conversation:leave', { conversationId });
 }
 
 export function sendSocketMessage(conversationId, content) {
-  if (socket?.connected) {
-    socket.emit('message:send', { conversationId, content });
-    return true;
-  }
-  return false;
+  if (!socket || !socket.connected || !conversationId) return false;
+
+  socket.emit('message:send', {
+    conversationId,
+    content,
+  });
+
+  return true;
 }
 
 export function markSocketConversationAsRead(conversationId) {
-  if (socket?.connected) {
-    socket.emit('conversation:read', { conversationId });
-  }
+  if (!socket?.connected || !conversationId) return;
+  socket.emit('conversation:read', { conversationId });
 }

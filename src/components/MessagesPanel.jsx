@@ -33,7 +33,7 @@ function formatMessageTime(dateString) {
 }
 
 function getConversationId(conversation) {
-  return conversation.conversation_id;
+  return conversation?.conversation_id || conversation?.id || null;
 }
 
 function getContactName(conversation, mode) {
@@ -44,25 +44,34 @@ function getContactName(conversation, mode) {
 }
 
 function sortConversations(list) {
-  return [...list].sort((a, b) => {
-    const dateA = new Date(a.updated_at || a.last_message_at || 0).getTime();
-    const dateB = new Date(b.updated_at || b.last_message_at || 0).getTime();
-    return dateB - dateA;
-  });
+  return [...list]
+    .filter((item) => getConversationId(item))
+    .sort((a, b) => {
+      const dateA = new Date(a.updated_at || a.last_message_at || 0).getTime();
+      const dateB = new Date(b.updated_at || b.last_message_at || 0).getTime();
+      return dateB - dateA;
+    });
 }
 
 function upsertConversation(list, updated) {
   const id = getConversationId(updated);
+  if (!id) return list;
+
   const exists = list.some((item) => getConversationId(item) === id);
+
   if (exists) {
     return sortConversations(
-      list.map((item) => (getConversationId(item) === id ? { ...item, ...updated } : item))
+      list.map((item) =>
+        getConversationId(item) === id ? { ...item, ...updated } : item
+      )
     );
   }
+
   return sortConversations([updated, ...list]);
 }
 
 function appendMessage(list, message) {
+  if (!message?.id) return list;
   if (list.some((item) => item.id === message.id)) return list;
   return [...list, message];
 }
@@ -81,6 +90,7 @@ export default function MessagesPanel({ mode }) {
   const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const activeConversationIdRef = useRef(null);
+  const loadConversationsRef = useRef(null);
 
   const activeConversation = conversations.find(
     (item) => getConversationId(item) === activeConversationId
@@ -109,6 +119,8 @@ export default function MessagesPanel({ mode }) {
   );
 
   const markRead = useCallback(async (conversationId) => {
+    if (!conversationId) return;
+
     try {
       await markConversationAsRead(conversationId);
       markSocketConversationAsRead(conversationId);
@@ -126,59 +138,80 @@ export default function MessagesPanel({ mode }) {
 
   const loadConversations = useCallback(async () => {
     const data = await getConversations();
-    setConversations(sortConversations(data));
+    const valid = (Array.isArray(data) ? data : []).filter((item) => getConversationId(item));
+    setConversations(sortConversations(valid));
   }, []);
 
-  useEffect(() => {
-    async function init() {
-      const token = getToken();
-      if (!user || !token) {
-        setLoading(false);
-        return;
-      }
+  loadConversationsRef.current = loadConversations;
 
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return undefined;
+    }
+
+    const token = getToken();
+    if (!token) {
+      setLoading(false);
+      return undefined;
+    }
+
+    let mounted = true;
+
+    async function init() {
       try {
         setLoading(true);
         setError('');
         connectSocket(token);
         await loadConversations();
       } catch (err) {
-        if (!handleAuthError(err)) {
+        if (mounted && !handleAuthError(err)) {
           setError(getAuthErrorMessage(err));
         }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
 
     init();
 
     return () => {
+      mounted = false;
       const currentId = activeConversationIdRef.current;
       if (currentId) {
         leaveConversation(currentId);
       }
       disconnectSocket();
     };
-  }, [user, loadConversations, handleAuthError]);
+  }, [user?.id, loadConversations, handleAuthError]);
 
   useEffect(() => {
+    if (!user?.id) return undefined;
+
     const token = getToken();
-    if (!user || !token) return undefined;
+    if (!token) return undefined;
 
     const socket = connectSocket(token);
     if (!socket) return undefined;
 
-    function onMessageNew(message) {
+    function onMessageNew(payload) {
+      const message = payload?.message;
+      if (!message?.id || !message?.conversation_id) return;
+
       const conversationId = message.conversation_id;
       const isActive = activeConversationIdRef.current === conversationId;
       const isMine = message.sender_id === user?.id;
 
       setConversations((prev) => {
         const existing = prev.find((item) => getConversationId(item) === conversationId);
+
+        if (!existing) {
+          loadConversationsRef.current?.();
+          return prev;
+        }
+
         const updated = {
-          ...(existing || {}),
-          conversation_id: conversationId,
+          ...existing,
           last_message: message.content,
           last_message_at: message.created_at,
           updated_at: message.created_at,
@@ -186,9 +219,10 @@ export default function MessagesPanel({ mode }) {
             isActive || isMine
               ? isActive
                 ? 0
-                : existing?.unread_count || 0
-              : (existing?.unread_count || 0) + 1,
+                : existing.unread_count || 0
+              : (existing.unread_count || 0) + 1,
         };
+
         return upsertConversation(prev, updated);
       });
 
@@ -199,13 +233,15 @@ export default function MessagesPanel({ mode }) {
       }
     }
 
-    function onConversationUpdated(conversation) {
+    function onConversationUpdated(payload) {
+      const conversation = payload?.conversation;
+      if (!conversation?.conversation_id) return;
+
       setConversations((prev) => upsertConversation(prev, conversation));
     }
 
     function onMessageError(payload) {
-      const message = payload?.message || 'No se pudo enviar el mensaje.';
-      setError(message);
+      setError(payload?.message || 'No se pudo enviar el mensaje.');
     }
 
     socket.on('message:new', onMessageNew);
@@ -217,13 +253,14 @@ export default function MessagesPanel({ mode }) {
       socket.off('conversation:updated', onConversationUpdated);
       socket.off('message:error', onMessageError);
     };
-  }, [user, markRead, scrollToBottom]);
+  }, [user?.id, markRead, scrollToBottom]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
   async function selectConversation(conversationId) {
+    if (!conversationId) return;
     if (activeConversationId === conversationId) return;
 
     setError('');
@@ -274,13 +311,15 @@ export default function MessagesPanel({ mode }) {
     try {
       const sentViaSocket = sendSocketMessage(activeConversationId, content);
 
-      if (!sentViaSocket || !getSocket()?.connected) {
+      if (sentViaSocket && getSocket()?.connected) {
+        setMessageInput('');
+      } else {
         const message = await sendMessageRest(activeConversationId, content);
         setMessages((prev) => appendMessage(prev, message));
+        await loadConversations();
+        setMessageInput('');
         scrollToBottom();
       }
-
-      setMessageInput('');
     } catch (err) {
       if (!handleAuthError(err)) {
         setError(getAuthErrorMessage(err));
@@ -289,6 +328,8 @@ export default function MessagesPanel({ mode }) {
       setSending(false);
     }
   }
+
+  const validConversations = conversations.filter((item) => getConversationId(item));
 
   if (loading) return <Loading />;
 
@@ -308,7 +349,7 @@ export default function MessagesPanel({ mode }) {
 
       <ErrorMessage message={error} />
 
-      {conversations.length === 0 ? (
+      {validConversations.length === 0 ? (
         <EmptyState
           title="Sin conversaciones"
           message={
@@ -322,8 +363,10 @@ export default function MessagesPanel({ mode }) {
           <aside className="messages-sidebar card">
             <h2>Conversaciones</h2>
             <div className="messages-sidebar__list">
-              {conversations.map((conversation) => {
+              {validConversations.map((conversation) => {
                 const conversationId = getConversationId(conversation);
+                if (!conversationId) return null;
+
                 const isActive = activeConversationId === conversationId;
                 const unread = Number(conversation.unread_count || 0);
 
