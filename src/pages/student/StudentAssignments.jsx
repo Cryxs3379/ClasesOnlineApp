@@ -9,16 +9,10 @@ import {
 import { getAuthErrorMessage } from '../../services/authService';
 import { useAuth } from '../../auth/AuthContext';
 import { formatDate, formatFileSize } from '../../utils/documentFormatters';
+import { getAssignmentDisplayStatus } from '../../utils/assignmentStatus';
 import Loading from '../../components/Loading';
 import ErrorMessage from '../../components/ErrorMessage';
 import EmptyState from '../../components/EmptyState';
-
-const STATUS_LABELS = {
-  pending: 'Pendiente',
-  submitted: 'Entregada',
-  reviewed: 'Revisada',
-  cancelled: 'Cancelada',
-};
 
 function formatDateTime(dateString) {
   if (!dateString) return '—';
@@ -28,11 +22,18 @@ function formatDateTime(dateString) {
   });
 }
 
-function AssignmentStatusBadge({ status }) {
+function AssignmentStatusBadge({ assignment }) {
+  const displayStatus = getAssignmentDisplayStatus(assignment);
+
   return (
-    <span className={`assignment-status assignment-status--${status || 'pending'}`}>
-      {STATUS_LABELS[status] || status || '—'}
-    </span>
+    <div className="assignment-status-wrap">
+      <span className={`assignment-status assignment-status--${displayStatus.key}`}>
+        {displayStatus.label}
+      </span>
+      {displayStatus.warning && (
+        <p className="assignment-warning">⚠️ {displayStatus.warning}</p>
+      )}
+    </div>
   );
 }
 
@@ -210,7 +211,7 @@ export default function StudentAssignments() {
                 <article key={assignment.id} className="assignment-card card">
                   <div className="assignment-card__header">
                     <h3>{assignment.title}</h3>
-                    <AssignmentStatusBadge status={assignment.status} />
+                    <AssignmentStatusBadge assignment={assignment} />
                   </div>
 
                   {assignment.description && (

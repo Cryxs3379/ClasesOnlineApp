@@ -7,6 +7,10 @@ import { useAuth } from '../auth/AuthContext';
 import Loading from './Loading';
 import ErrorMessage from './ErrorMessage';
 import EmptyState from './EmptyState';
+import {
+  getAssignmentDisplayStatus,
+  isAssignmentOverdue,
+} from '../utils/assignmentStatus';
 
 const FILTERS = [
   { id: 'all', label: 'Todos' },
@@ -20,13 +24,6 @@ const FILTERS = [
 ];
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-const ASSIGNMENT_STATUS_LABELS = {
-  pending: 'Pendiente',
-  submitted: 'Entregada',
-  reviewed: 'Revisada',
-  cancelled: 'Cancelada',
-};
 
 const CLASS_STATUS_LABELS = {
   scheduled: 'Programada',
@@ -185,12 +182,27 @@ function formatDateTime(dateString) {
   });
 }
 
-function getAssignmentStatusLabel(status) {
-  return ASSIGNMENT_STATUS_LABELS[status] || status || '—';
-}
-
 function getClassStatusLabel(status) {
   return CLASS_STATUS_LABELS[status] || status || '—';
+}
+
+function getAssignmentMonthEventLabel(assignment) {
+  const displayStatus = getAssignmentDisplayStatus(assignment);
+  if (displayStatus.key === 'overdue') {
+    return '📝 Tarea atrasada';
+  }
+  return '📝 Tarea';
+}
+
+function getAssignmentMonthEventClass(assignment) {
+  const displayStatus = getAssignmentDisplayStatus(assignment);
+  if (displayStatus.key === 'overdue') {
+    return 'agenda-month__event agenda-month__event--overdue';
+  }
+  if (displayStatus.key === 'submitted-late') {
+    return 'agenda-month__event agenda-month__event--submitted-late';
+  }
+  return 'agenda-month__event agenda-month__event--assignment';
 }
 
 function toClassEvent(classItem) {
@@ -387,14 +399,27 @@ function AgendaMonthCalendar({
             >
               <span className="agenda-month__day-number">{day.getDate()}</span>
               <div className="agenda-month__events">
-                {visibleEvents.map((event) => (
-                  <span
-                    key={`${event.type}-${event.id}`}
-                    className={`agenda-month__event agenda-month__event--${event.type}`}
-                  >
-                    {event.type === 'class' ? '🎥 Clase' : '📝 Tarea'}
-                  </span>
-                ))}
+                {visibleEvents.map((event) => {
+                  if (event.type === 'class') {
+                    return (
+                      <span
+                        key={`${event.type}-${event.id}`}
+                        className="agenda-month__event agenda-month__event--class"
+                      >
+                        🎥 Clase
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <span
+                      key={`${event.type}-${event.id}`}
+                      className={getAssignmentMonthEventClass(event.raw)}
+                    >
+                      {getAssignmentMonthEventLabel(event.raw)}
+                    </span>
+                  );
+                })}
                 {hiddenCount > 0 && (
                   <span className="agenda-month__more">+{hiddenCount} más</span>
                 )}
@@ -459,9 +484,17 @@ function AgendaEventCard({ event, mode }) {
   }
 
   const assignment = event.raw;
+  const displayStatus = getAssignmentDisplayStatus(assignment);
+  const cardClasses = [
+    'agenda-event-card',
+    'agenda-event-card--assignment',
+    displayStatus.key === 'overdue' ? 'agenda-event-card--overdue' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <article className="agenda-event-card agenda-event-card--assignment">
+    <article className={cardClasses}>
       <div className="agenda-event-main">
         <div className="agenda-event-meta">
           <span className="agenda-event-badge agenda-event-badge--assignment">Tarea</span>
@@ -476,10 +509,13 @@ function AgendaEventCard({ event, mode }) {
         </p>
         <p className="agenda-event-meta">
           Estado:{' '}
-          <span className={`agenda-status agenda-status--${event.status || 'pending'}`}>
-            {getAssignmentStatusLabel(event.status)}
+          <span className={`agenda-status agenda-status--${displayStatus.key}`}>
+            {displayStatus.label}
           </span>
         </p>
+        {displayStatus.warning && (
+          <p className="agenda-event-warning">⚠️ {displayStatus.warning}</p>
+        )}
         {event.description && <p className="agenda-event-desc">{event.description}</p>}
         {hasAttachment(assignment) && (
           <p className="agenda-event-meta">Tiene material adjunto</p>
@@ -552,6 +588,7 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
       pendingAssignments: assignments.filter((item) => item.status === 'pending').length,
       submittedAssignments: assignments.filter((item) => item.status === 'submitted').length,
       reviewedAssignments: assignments.filter((item) => item.status === 'reviewed').length,
+      overdueAssignments: assignments.filter(isAssignmentOverdue).length,
     };
   }, [classes, assignments]);
 
@@ -662,6 +699,10 @@ export default function AgendaCalendar({ mode = 'teacher' }) {
         <article className="agenda-summary-card card">
           <span>Tareas revisadas</span>
           <strong>{summary.reviewedAssignments}</strong>
+        </article>
+        <article className="agenda-summary-card card agenda-summary-card--overdue">
+          <span>Tareas atrasadas</span>
+          <strong>{summary.overdueAssignments}</strong>
         </article>
       </section>
 

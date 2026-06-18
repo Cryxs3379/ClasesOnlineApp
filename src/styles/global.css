@@ -1165,6 +1165,35 @@ img {
   color: #4b5563;
 }
 
+.assignment-status--overdue,
+.agenda-status--overdue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.assignment-status--submitted-late,
+.agenda-status--submitted-late {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.assignment-status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.assignment-warning,
+.agenda-event-warning {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: #b45309;
+  font-weight: 600;
+}
+
 .assignment-file-block {
   margin-top: 0.85rem;
   padding: 0.85rem 1rem;
@@ -1202,7 +1231,7 @@ img {
 
 .agenda-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
 }
 
@@ -1221,6 +1250,10 @@ img {
 .agenda-summary-card strong {
   font-size: 1.6rem;
   line-height: 1;
+}
+
+.agenda-summary-card--overdue strong {
+  color: #b91c1c;
 }
 
 .agenda-filters {
@@ -1353,6 +1386,18 @@ img {
   color: #9a3412;
 }
 
+.agenda-month__event--overdue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.agenda-month__event--submitted-late {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 .agenda-month__more {
   font-size: 0.64rem;
   font-weight: 700;
@@ -1416,6 +1461,10 @@ img {
 
 .agenda-event-card--assignment {
   border-left: 4px solid #d97706;
+}
+
+.agenda-event-card--overdue {
+  border-left-color: #ef4444;
 }
 
 .agenda-event-main {
