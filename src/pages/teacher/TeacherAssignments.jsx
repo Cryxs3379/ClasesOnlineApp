@@ -120,6 +120,19 @@ export default function TeacherAssignments() {
     setDueDate('');
   }
 
+  function handleClassChange(value) {
+    setClassId(value);
+
+    if (!value) return;
+
+    const classItem = classes.find((item) => item.id === value);
+    const linkedStudentId = classItem?.student_id || classItem?.studentId;
+
+    if (linkedStudentId) {
+      setStudentId(String(linkedStudentId));
+    }
+  }
+
   async function handleCreate(e) {
     e.preventDefault();
     setError('');
@@ -130,7 +143,10 @@ export default function TeacherAssignments() {
       return;
     }
 
-    if (!studentId && !classId) {
+    const selectedStudentId = studentId.trim();
+    const selectedClassId = classId.trim();
+
+    if (!selectedStudentId && !selectedClassId) {
       setError('Selecciona un alumno o una clase.');
       return;
     }
@@ -141,8 +157,15 @@ export default function TeacherAssignments() {
       due_date: dueDate || undefined,
     };
 
-    if (studentId) payload.student_id = Number(studentId);
-    if (classId) payload.class_id = Number(classId);
+    if (selectedStudentId) {
+      payload.student_id = selectedStudentId;
+    }
+
+    if (selectedClassId) {
+      payload.class_id = selectedClassId;
+    }
+
+    console.log('Payload crear tarea:', payload);
 
     setSubmitting(true);
     try {
@@ -296,7 +319,7 @@ export default function TeacherAssignments() {
               <select
                 id="assignment-class"
                 value={classId}
-                onChange={(e) => setClassId(e.target.value)}
+                onChange={(e) => handleClassChange(e.target.value)}
               >
                 <option value="">Selecciona clase (opcional)</option>
                 {classes.map((classItem) => (
